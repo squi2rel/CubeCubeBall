@@ -5,6 +5,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,7 +17,7 @@ public class CBTabCompletion implements TabCompleter {
     private final List<String> list = new ArrayList<>();
 
     @Override
-    public List<String> onTabComplete(CommandSender sender, Command cmd, String label, String[] args) {
+    public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command cmd, @NotNull String label, String[] args) {
         list.clear();
         if (sender instanceof Player) {
             Player player = (Player) sender;
@@ -27,6 +28,8 @@ public class CBTabCompletion implements TabCompleter {
                     ArrayList<String> commands = new ArrayList<>();
                     commands.add("generate");
                     commands.add("remove");
+                    commands.add("creatematch");
+                    commands.add("removematch");
                     commands.add("match");
                     commands.add("scanpoint");
                     commands.add("scanplayer");
@@ -38,21 +41,17 @@ public class CBTabCompletion implements TabCompleter {
                     for (String command : commands) {
                         if (command.startsWith(args[0].toLowerCase())) list.add(command);
                     }
-                }
-                if (args.length == 2) {
+                } else if (args.length == 2) {
                     if (args[0].equalsIgnoreCase("team")) {
                         list.add("BLUE");
                         list.add("RED");
                         list.add("SPECTATOR");
-                    }
-                    if (args[0].equalsIgnoreCase("generate")) {
+                    } else if (args[0].equalsIgnoreCase("generate")) {
                         list.add("<ID>");
-                    }
-                    if (args[0].equalsIgnoreCase("remove")) {
+                    } else if (args[0].equalsIgnoreCase("remove")) {
                         list.addAll(balls.keySet());
                     }
-                }
-                if (args.length == 3) {
+                } else if (args.length == 3) {
                     if (args[1].equalsIgnoreCase("BLUE") || args[1].equalsIgnoreCase("RED")) {
                         String lower = args[2].toLowerCase();
                         Bukkit.getOnlinePlayers().forEach(onlinePlayer -> {
@@ -63,20 +62,16 @@ public class CBTabCompletion implements TabCompleter {
                         list.add("<x>");
                     }
 
-                }
-                if (args.length == 4) {
+                } else if (args.length == 4) {
                     if (args[0].equalsIgnoreCase("generate")) {
                         list.add("<y>");
                     }
 
-                }
-                if (args.length == 5) {
+                } else if (args.length == 5) {
                     if (args[0].equalsIgnoreCase("generate")) {
                         list.add("<z>");
                     }
-                }
-
-                if (args.length == 6) {
+                } else if (args.length == 6) {
                     if (args[0].equalsIgnoreCase("generate")) {
                         Bukkit.getWorlds().forEach(world -> list.add(world.getName()));
                     }

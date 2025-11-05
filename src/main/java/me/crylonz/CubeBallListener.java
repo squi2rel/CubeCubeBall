@@ -1,6 +1,7 @@
 package me.crylonz;
 
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.entity.EntityType;
 import org.bukkit.event.EventHandler;
@@ -21,51 +22,55 @@ public class CubeBallListener implements Listener {
 
     @EventHandler
     public void blockChangeEvent(EntityChangeBlockEvent e) {
-        if (e.getTo().equals(cubeBallBlock)) {
-            if (e.getEntityType() == EntityType.FALLING_BLOCK) {
-                e.setCancelled(true);
+        for (Match match : matches.values()) {
+            Material block = match.getConfig().cubeBallBlock;
+            if (e.getTo().equals(block)) {
+                if (e.getEntityType() == EntityType.FALLING_BLOCK) {
+                    e.setCancelled(true);
 
-                Ball ballData = fetchBallContacting(e.getBlock().getLocation());
+                    Ball ballData = fetchBallContacting(e.getBlock().getLocation());
 
-                if (ballData != null) {
-                    String ballId = ballData.getId();
+                    if (ballData != null) {
+                        String ballId = ballData.getId();
 
-                    if (ballData.getBall() != null) {
-                        Vector velocity = ballData.getBall().getVelocity();
-                        double zVelocity = abs(velocity.getZ()) / 1.5;
-                        double xVelocity = abs(velocity.getX()) / 1.5;
-                        double maxZX = max(zVelocity, xVelocity);
+                        if (ballData.getBall() != null) {
+                            Vector velocity = ballData.getBall().getVelocity();
+                            double zVelocity = abs(velocity.getZ()) / 1.5;
+                            double xVelocity = abs(velocity.getX()) / 1.5;
+                            double maxZX = max(zVelocity, xVelocity);
 
-                        velocity.setY(min(maxZX, 0.5));
+                            velocity.setY(min(maxZX, 0.5));
 
-                        destroyBall(ballId);
-                        generateBall(ballId, e.getEntity().getLocation(), ballData.getLastVelocity());
+                            destroyBall(ballId);
+                            generateBall(block, ballId, e.getEntity().getLocation(), ballData.getLastVelocity());
 
-                        ballData = balls.get(ballId);
-                        ballData.getBall().setVelocity(velocity);
+                            ballData = balls.get(ballId);
+                            ballData.getBall().setVelocity(velocity);
 
-                        if (abs(velocity.getX() + velocity.getY() + velocity.getZ()) <= 0.001 || velocity.getY() < 0.025) {
-                            ballData.getBall().setVelocity(ballData.getBall().getVelocity().zero());
-                            ballData.getBall().setGravity(false);
-                        } else {
-                            if (abs(velocity.getX() + velocity.getY() + velocity.getZ()) > 0.1) {
-                                ballData.getBall().getWorld().playSound(ballData.getBall().getLocation(), Sound.BLOCK_WOOL_HIT, 10, 1);
+                            if (abs(velocity.getX() + velocity.getY() + velocity.getZ()) <= 0.001 || velocity.getY() < 0.025) {
+                                ballData.getBall().setVelocity(ballData.getBall().getVelocity().zero());
+                                ballData.getBall().setGravity(false);
+                            } else {
+                                if (abs(velocity.getX() + velocity.getY() + velocity.getZ()) > 0.1) {
+                                    ballData.getBall().getWorld().playSound(ballData.getBall().getLocation(), Sound.BLOCK_WOOL_HIT, 10, 1);
+                                }
                             }
                         }
                     }
                 }
-
             }
         }
     }
 
     @EventHandler
     public static void onSwapItem(PlayerSwapHandItemsEvent event) {
-        if (match != null && match.getMatchState() == MatchState.IN_PROGRESS && match.containsPlayer(event.getPlayer())) {
-            if (!cooldown.containsKey(event.getPlayer())) {
-                cooldown.put(event.getPlayer(), System.currentTimeMillis());
-                launch(event.getPlayer(), 2);
-                event.setCancelled(true);
+        for (Match match : matches.values()) {
+            if (match != null && match.getMatchState() == MatchState.IN_PROGRESS && match.containsPlayer(event.getPlayer())) {
+                if (!cooldown.containsKey(event.getPlayer())) {
+                    cooldown.put(event.getPlayer(), System.currentTimeMillis());
+                    launch(event.getPlayer(), 2);
+                    event.setCancelled(true);
+                }
             }
         }
     }

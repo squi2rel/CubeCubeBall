@@ -1,7 +1,10 @@
 package me.crylonz;
 
+import com.squi2rel.cb.I18n;
+import com.squi2rel.cb.menu.SettingsMenu;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -23,35 +26,33 @@ public class CBCommandExecutor implements CommandExecutor {
 
             if (cmd.getName().equalsIgnoreCase("cb")) {
                 if (args.length == 1) {
-                    if (args[0].equalsIgnoreCase("match") && player.hasPermission("cubeball.manage")) {
-                        balls.remove(BALL_MATCH_ID);
-                        match = new Match();
-                        player.sendMessage(I18n.get("new_match_created"));
+                    if (args[0].equalsIgnoreCase("menu")) {
+                        SettingsMenu.settings.sendTo(player);
                     } else if (args[0].equalsIgnoreCase("scanpoint") && player.hasPermission("cubeball.manage")) {
-                        if (match != null) match.scanPoint(player);
+                        if (current != null) current.scanPoint(player);
                     } else if (args[0].equalsIgnoreCase("scanplayer") && player.hasPermission("cubeball.manage")) {
-                        if (match != null) {
-                            match.scanPlayer();
-                            match.displayTeams(player);
+                        if (current != null) {
+                            current.scanPlayer();
+                            current.displayTeams(player);
                         }
                     } else if (args[0].equalsIgnoreCase("start") && player.hasPermission("cubeball.manage")) {
-                        if (match != null) {
-                            match.start(player);
+                        if (current != null) {
+                            current.start(player);
                         } else {
                             player.sendMessage(I18n.get("need_create_match"));
                         }
                     } else if (args[0].equalsIgnoreCase("stop") && player.hasPermission("cubeball.manage")) {
-                        if (match != null) {
+                        if (current != null) {
                             Ball ball = balls.remove(BALL_MATCH_ID);
                             if (ball != null && ball.getBall() != null) ball.getBall().remove();
-                            match.reset();
+                            current.reset();
                             player.sendMessage(I18n.get("match_cancelled"));
                         } else {
                             player.sendMessage(I18n.get("no_match_to_stop"));
                         }
                     } else if (args[0].equalsIgnoreCase("pause") && player.hasPermission("cubeball.manage")) {
-                        if (match != null && match.pause()) {
-                            for (Player p : match.getAllPlayer(true)) {
+                        if (current != null && current.pause()) {
+                            for (Player p : current.getAllPlayer(true)) {
                                 if (p != null) {
                                     p.sendMessage(I18n.format("match_paused_by", "name", player.getName()));
                                 }
@@ -60,8 +61,8 @@ public class CBCommandExecutor implements CommandExecutor {
                             player.sendMessage(I18n.get("no_match_to_pause"));
                         }
                     } else if (args[0].equalsIgnoreCase("resume") && player.hasPermission("cubeball.manage")) {
-                        if (match != null && match.resume()) {
-                            for (Player p : match.getAllPlayer(true)) {
+                        if (current != null && current.resume()) {
+                            for (Player p : current.getAllPlayer(true)) {
                                 if (p != null) {
                                     p.sendMessage(I18n.format("match_resumed_by", "name", player.getName()));
                                 }
@@ -73,9 +74,28 @@ public class CBCommandExecutor implements CommandExecutor {
                         player.sendMessage(I18n.get("unknown_command"));
                     }
                 } else if (args.length == 2) {
-                    if (args[0].equalsIgnoreCase("generate") && player.hasPermission("cubeball.manage")) {
+                    if (args[0].equalsIgnoreCase("creatematch") && player.hasPermission("cubeball.manage")) {
+                        balls.remove(BALL_MATCH_ID);
+                        current = new Match(args[1]);
+                        matches.put(args[1], current);
+                        player.sendMessage(I18n.get("new_match_created"));
+                        CubeBall.save();
+                    } else if (args[0].equalsIgnoreCase("removematch") && player.hasPermission("cubeball.manage")) {
+                        Match removed = matches.remove(args[1]);
+                        if (removed != null) {
+                            player.sendMessage(I18n.get("match_removed"));
+                        }
+                        if (current == removed) {
+                            current = null;
+                        }
+                        CubeBall.save();
+                    } else if (args[0].equalsIgnoreCase("match") && player.hasPermission("cubeball.manage")) {
+                        current = matches.get(args[1]);
+                        player.sendMessage(current.getName());
+                        CubeBall.save();
+                    } else if (args[0].equalsIgnoreCase("generate") && player.hasPermission("cubeball.manage")) {
                         if (balls.get(args[1]) == null) {
-                            generateBall(args[1], player.getLocation(), null);
+                            generateBall(Material.IRON_BLOCK, args[1], player.getLocation(), null);
                             player.sendMessage(I18n.format("ball_generated", "id", args[1]));
                         } else {
                             player.sendMessage(I18n.format("ball_exists", "id", args[1]));
@@ -87,18 +107,17 @@ public class CBCommandExecutor implements CommandExecutor {
                         } else {
                             sender.sendMessage(I18n.format("ball_not_exists", "id", args[1]));
                         }
-
                     }
                 }
                 if (args.length == 3) {
                     if (args[0].equalsIgnoreCase("team") && player.hasPermission("cubeball.manage")) {
-                        if (match != null) {
+                        if (current != null) {
                             try {
                                 Team team = Team.valueOf(args[1].toUpperCase());
                                 Player playerToAdd = Bukkit.getPlayer(args[2]);
-                                if (match.addPlayerToTeam(playerToAdd, team)) {
+                                if (current.addPlayerToTeam(playerToAdd, team)) {
                                     player.sendMessage(I18n.format("player_added_to_team", "team", args[1].toUpperCase()));
-                                    match.displayTeams(player);
+                                    current.displayTeams(player);
                                     player.sendMessage(I18n.get("use_cb_start"));
                                 } else {
                                     player.sendMessage(I18n.get("cannot_find_player"));
@@ -143,7 +162,7 @@ public class CBCommandExecutor implements CommandExecutor {
     private static void generateWithPosition(CommandSender sender, String[] args) {
         if (balls.get(args[1]) == null) {
             if (Bukkit.getWorld(args[5]) != null) {
-                generateBall(args[1],
+                generateBall(Material.IRON_BLOCK, args[1],
                         new Location(Bukkit.getWorld(args[5]),
                                 Double.parseDouble(args[2]),
                                 Double.parseDouble(args[3]),

@@ -1,16 +1,20 @@
 package me.crylonz;
 
+import com.squi2rel.cb.I18n;
+import com.squi2rel.cb.MatchConfig;
+import com.squi2rel.cb.menu.builder.MenuManager;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bstats.bukkit.Metrics;
 import org.bukkit.*;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.MemoryConfiguration;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.FallingBlock;
 import org.bukkit.entity.Player;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.Vector;
 
@@ -24,32 +28,27 @@ import static me.crylonz.MatchState.*;
 public class CubeBall extends JavaPlugin {
 
     public static File configFile;
-    public static FileConfiguration customConfig = null;
     public static HashMap<String, Ball> balls = new HashMap<>();
 
-    public static Match match;
+    public static Match current;
+    public static HashMap<String, Match> matches = new HashMap<>();
 
-    public static String BALL_MATCH_ID = "BALL_MATCH_ID_DONT_USE_IT";
+    public static String BALL_MATCH_ID = "match_";
     public static Plugin plugin;
     public static int matchTimer = 0;
-    public final static Logger log = Logger.getLogger("Minecraft");
 
 
     public static HashMap<Player, Long> cooldown;
     public static long cooldownTime = 15000;
 
-    // config
-    public static Material cubeBallBlock = Material.IRON_BLOCK;
-    public static int matchDuration = 300;
-    public static int maxGoal = 0;
 
-    public static void generateBall(String id, Location location, Vector lastVelocity) {
+    public static void generateBall(Material material, String id, Location location, Vector lastVelocity) {
 
         if (balls.get(id) != null) {
             throw new IllegalStateException("Same ID cannot be put on the same ball");
         }
 
-        BlockData blockData = Bukkit.createBlockData(cubeBallBlock);
+        BlockData blockData = Bukkit.createBlockData(material);
         FallingBlock block = Objects.requireNonNull(location.getWorld()).spawnFallingBlock(location, blockData);
         block.setMetadata("ballID", new FixedMetadataValue(plugin, id));
         block.setGlowing(true);
@@ -77,20 +76,23 @@ public class CubeBall extends JavaPlugin {
     }
 
     public void onEnable() {
-        PluginManager pm = getServer().getPluginManager();
-        String lang = getConfig().getString("language", "en");
-        I18n.init(this, lang);
-
         configFile = new File(getDataFolder(), "config.yml");
         if (!configFile.exists()) {
             saveDefaultConfig();
-        } else {
-            cubeBallBlock = Material.valueOf((String) getConfig().get("cubeBallBlock"));
-            matchDuration = getConfig().getInt("matchDuration");
-            maxGoal = getConfig().getInt("maxGoal");
         }
 
-        pm.registerEvents(new CubeBallListener(), this);
+        String lang = getConfig().getString("language", "en");
+        I18n.init(this, lang);
+
+        MenuManager.init(this);
+
+        ConfigurationSection section = getConfig().getConfigurationSection("matches");
+        if (section == null) section = new MemoryConfiguration();
+        for (String key : Objects.requireNonNull(section).getKeys(false)) {
+            matches.put(key, new Match(key, MatchConfig.from(section.getConfigurationSection(key))));
+        }
+
+        getServer().getPluginManager().registerEvents(new CubeBallListener(), this);
 
         plugin = this;
 
@@ -107,12 +109,27 @@ public class CubeBall extends JavaPlugin {
     }
 
     public void onDisable() {
+        MenuManager.closeAll();
+
+        save();
+
         balls.forEach((key, value) -> {
             if (value.getBall() != null) {
                 value.getBall().remove();
             }
         });
         getServer().getScheduler().cancelTasks(this);
+    }
+
+    public static void save() {
+        ConfigurationSection section = new MemoryConfiguration();
+        for (Map.Entry<String, Match> match : matches.entrySet()) {
+            MemoryConfiguration m = new MemoryConfiguration();
+            match.getValue().getConfig().write(m);
+            section.set(match.getKey(), m);
+        }
+        plugin.getConfig().set("matches", section);
+        plugin.saveConfig();
     }
 
     public static void launch(Player player, double power) {
@@ -133,27 +150,27 @@ public class CubeBall extends JavaPlugin {
                 return b;
             });
 
-            if (match != null && match.getMatchState().equals(IN_PROGRESS)) {
+            if (current != null && current.getMatchState().equals(IN_PROGRESS)) {
                 matchTimer--;
 
                 if (matchTimer % 60 == 0 && matchTimer > 0) {
-                    match.getAllPlayer(true).forEach(player -> {
+                    current.getAllPlayer(true).forEach(player -> {
                         if (player != null) {
                             player.sendMessage(I18n.format("match_time_left_min", "min", matchTimer / 60));
                         }
                     });
                 }
                 if (matchTimer == 30 || matchTimer == 15 || matchTimer <= 10 && matchTimer > 0) {
-                    match.getAllPlayer(true).forEach(player -> {
+                    current.getAllPlayer(true).forEach(player -> {
                         if (player != null) {
                             player.sendMessage(I18n.format("match_time_left_sec", "sec", matchTimer));
                         }
                     });
                 }
                 if (matchTimer <= 0) {
-                    match.endMatch();
-                    if (match.getMatchState() != OVERTIME) {
-                        match.setMatchState(READY);
+                    current.endMatch();
+                    if (current.getMatchState() != OVERTIME) {
+                        current.setMatchState(READY);
                     }
                 }
             } else {
@@ -188,8 +205,8 @@ public class CubeBall extends JavaPlugin {
                                     ballData.getBall().getWorld().playSound(ballData.getBall().getLocation(), Sound.BLOCK_STONE_HIT, 10, 1);
                                     ballData.setPlayerCollisionTick(0);
 
-                                    if (match != null) {
-                                        match.setLastTouchPlayer(player);
+                                    if (current != null) {
+                                        current.setLastTouchPlayer(player);
                                     }
                                 }
                             });
@@ -218,8 +235,8 @@ public class CubeBall extends JavaPlugin {
                         }
                     }
 
-                    if (match != null && ballData.getId().equals(BALL_MATCH_ID)) {
-                        match.checkGoal(ballData.getBall().getLocation());
+                    if (current != null && ballData.getId().equals(BALL_MATCH_ID)) {
+                        current.checkGoal(ballData.getBall().getLocation());
                     }
 
                     ballData.setLastVelocity(ballData.getBall().getVelocity().clone());

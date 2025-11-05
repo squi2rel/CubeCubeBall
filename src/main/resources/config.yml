@@ -3,13 +3,6 @@
 # Any trouble to use this file ? Ask helps on Discord : https://discordapp.com/invite/jCsvJxS
 #
 
-# Which type of block represent your ball ?
-cubeBallBlock: SPONGE
+language: zh
 
-# How long is a match ? (In seconds)
-matchDuration: 300
-
-# Max goal per match ( 0 = unlimited )
-maxGoal: 0
-
-language: en
+matches: []
