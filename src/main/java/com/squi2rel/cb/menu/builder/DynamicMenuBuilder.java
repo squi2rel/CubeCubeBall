@@ -1,32 +1,31 @@
 package com.squi2rel.cb.menu.builder;
 
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
+import java.util.function.Supplier;
 
-public class DynamicMenuBuilder<T> {
-    private String title;
-    private int row;
-    private List<MenuItem<T>> items;
+@SuppressWarnings("unused")
+public class DynamicMenuBuilder<T> extends MenuBuilderBase {
     private DynamicMenuBuilderHandler<T> builder;
-    private String prefix = "", lorePrefix = "";
-    private boolean refreshRequested = true;
+    private DynamicMenuContext<T> context;
 
     public DynamicMenuBuilder(String title, int row, DynamicMenuBuilderHandler<T> builder) {
         this.title = title;
         this.row = row;
         this.builder = builder;
-        clear();
+    }
+
+    public MenuItem<T> setSlot(int column, int row, Material item, String name, String desc) {
+        MenuItem<T> element = new MenuItem<>(item, name, desc, prefix, lorePrefix);
+        Objects.requireNonNull(context).items.set(row * 9 + column, element);
+        return element;
     }
 
     public void setTitle(String title) {
@@ -54,25 +53,31 @@ public class DynamicMenuBuilder<T> {
         return builder;
     }
 
+    public <R> R withContext(DynamicMenuContext<T> context, Supplier<R> runnable) {
+        this.context = context;
+        R r = runnable.get();
+        this.context = null;
+        return r;
+    }
+
+    public void withContext(DynamicMenuContext<T> context, Runnable runnable) {
+        this.context = context;
+        runnable.run();
+        this.context = null;
+    }
+
+    @Override
+    public void setAutoClose(boolean autoClose) {
+        Objects.requireNonNull(context).autoClose = autoClose;
+    }
+
     @SuppressWarnings("unchecked")
     public void clear() {
-        items = Arrays.asList(new MenuItem[row * 9]);
+        Objects.requireNonNull(context).items = Arrays.asList(new MenuItem[row * 9]);
     }
 
-    public void setSlot(int column, int row, Material item, String name, String desc, MenuHandler<T> action) {
-        items.set(row * 9 + column, new MenuItem<>(item, name, desc, action));
-    }
-
-    public void setPrefix(String prefix) {
-        this.prefix = prefix;
-    }
-
-    public void setLorePrefix(String prefix) {
-        this.lorePrefix = prefix;
-    }
-
-    public void requestRefresh() {
-        refreshRequested = true;
+    public void refresh() {
+        throw new Refresh();
     }
 
     public DynamicMenuContext<T> build() {
@@ -89,45 +94,35 @@ public class DynamicMenuBuilder<T> {
         }
 
         public void refresh(Player player, T argument) {
-            builder.clear();
-            builder.builder.handle(builder, player, argument);
+            builder.withContext(this, () -> {
+                builder.clear();
+                builder.builder.handle(builder, player, argument);
+            });
             Inventory inventory = Bukkit.createInventory(null, builder.row * 9, builder.title);
-            for (int i = 0; i < builder.items.size(); i++) {
-                MenuItem<T> item = builder.items.get(i);
-                if (item == null) continue;
-                ItemStack stack = new ItemStack(item.item());
-                ItemMeta meta = Objects.requireNonNull(stack.getItemMeta());
-                meta.setDisplayName(ChatColor.RESET + builder.prefix + item.name());
-                String desc = item.desc();
-                if (desc != null) meta.setLore(Arrays.stream(desc.split("\n")).map(s -> ChatColor.RESET + builder.lorePrefix + s).collect(Collectors.toList()));
-                stack.setItemMeta(meta);
-                inventory.setItem(i, stack);
-            }
-            this.items = new ArrayList<>(builder.items);
+            for (int i = 0; i < items.size(); i++) setMenuItem(items.get(i), inventory, i);
             this.inventory = inventory;
         }
 
         @Override
         @SuppressWarnings("unchecked")
-        public void handleClick(Player player, int slot, Object argument) {
+        public void handleClick(Player player, int slot, int hotbar, Object argument, ClickType clickType) {
             if (slot < 0 || slot >= items.size()) return;
             MenuItem<T> item = items.get(slot);
             if (item == null) return;
-            this.argument = (T) argument;
-            MenuHandler<T> action = item.action();
-            if (action == null) return;
-            action.handle(player, this);
-            if (this.argument != argument) MenuManager.updateArgument(player, this.argument);
-            if (builder.refreshRequested) {
-                builder.refreshRequested = false;
-                sendTo(player, this.argument);
+            setArgument((T) argument);
+            boolean refresh = false;
+            try {
+                if (builder.withContext(this, () -> item.handleClick(this, player, hotbar, clickType))) return;
+            } catch (Refresh e) {
+                refresh = true;
             }
+            if (this.argument != argument) MenuManager.updateArgument(player, this.argument);
+            if (refresh) sendTo(player, this.argument);
         }
 
         @Override
         public void sendTo(Player player, T argument) {
             refresh(player, argument);
-            builder.refreshRequested = false;
             player.openInventory(inventory);
             MenuManager.registerMenu(player, this, argument);
         }
@@ -135,5 +130,8 @@ public class DynamicMenuBuilder<T> {
 
     public interface DynamicMenuBuilderHandler<T> {
         void handle(DynamicMenuBuilder<T> builder, Player player, T argument);
+    }
+
+    private static class Refresh extends RuntimeException {
     }
 }

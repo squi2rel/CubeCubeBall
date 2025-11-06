@@ -14,11 +14,7 @@ public class MatchConfig {
     public int matchDuration = 300;
     public int maxGoal = 0;
 
-    public Material ballSpawnBlock = Material.EMERALD_BLOCK;
-    public Material blueTeamSpawnBlock = Material.BLUE_WOOL;
-    public Material blueTeamGoalBlock = Material.BLUE_CONCRETE;
-    public Material redTeamSpawnBlock = Material.RED_WOOL;
-    public Material redTeamGoalBlock = Material.RED_CONCRETE;
+    public Location ballSpawn;
 
     public List<Location> blueTeamGoalBlocks = new ArrayList<>();
     public List<Location> redTeamGoalBlocks = new ArrayList<>();
@@ -30,12 +26,7 @@ public class MatchConfig {
         config.set("matchDuration", matchDuration);
         config.set("maxGoal", maxGoal);
 
-        config.set("ballSpawnBlock", ballSpawnBlock.name());
-        config.set("blueTeamSpawnBlock", blueTeamSpawnBlock.name());
-        config.set("blueTeamGoalBlock", blueTeamGoalBlock.name());
-        config.set("redTeamSpawnBlock", redTeamSpawnBlock.name());
-        config.set("redTeamGoalBlock", redTeamGoalBlock.name());
-
+        config.set("ballSpawn", ballSpawn);
         config.set("blueTeamGoalBlocks", blueTeamGoalBlocks);
         config.set("redTeamGoalBlocks", redTeamGoalBlocks);
         config.set("blueTeamSpawns", blueTeamSpawns);
@@ -47,12 +38,7 @@ public class MatchConfig {
         matchDuration = config.getInt("matchDuration");
         maxGoal = config.getInt("maxGoal");
 
-        ballSpawnBlock = getMaterial(config.getString("ballSpawnBlock"));
-        blueTeamSpawnBlock = getMaterial(config.getString("blueTeamSpawnBlock"));
-        blueTeamGoalBlock = getMaterial(config.getString("blueTeamGoalBlock"));
-        redTeamSpawnBlock = getMaterial(config.getString("redTeamSpawnBlock"));
-        redTeamGoalBlock = getMaterial(config.getString("redTeamGoalBlock"));
-
+        ballSpawn = config.getSerializable("ballSpawn", Location.class);
         blueTeamGoalBlocks = getLocations(config, "blueTeamGoalBlocks");
         redTeamGoalBlocks = getLocations(config, "redTeamGoalBlocks");
         blueTeamSpawns = getLocations(config, "blueTeamSpawns");

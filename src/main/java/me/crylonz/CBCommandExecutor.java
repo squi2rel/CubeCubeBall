@@ -2,6 +2,7 @@ package me.crylonz;
 
 import com.squi2rel.cb.I18n;
 import com.squi2rel.cb.menu.SettingsMenu;
+import com.squi2rel.cb.menu.builder.MenuManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -26,8 +27,8 @@ public class CBCommandExecutor implements CommandExecutor {
 
             if (cmd.getName().equalsIgnoreCase("cb")) {
                 if (args.length == 1) {
-                    if (args[0].equalsIgnoreCase("menu")) {
-                        SettingsMenu.settings.sendTo(player);
+                    if (args[0].equalsIgnoreCase("menu") && player.hasPermission("cubeball.manage")) {
+                        MenuManager.openMenu(player, () -> SettingsMenu.settings.sendTo(player));
                     } else if (args[0].equalsIgnoreCase("scanpoint") && player.hasPermission("cubeball.manage")) {
                         if (current != null) current.scanPoint(player);
                     } else if (args[0].equalsIgnoreCase("scanplayer") && player.hasPermission("cubeball.manage")) {

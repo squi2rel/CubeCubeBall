@@ -1,16 +1,17 @@
 package com.squi2rel.cb.menu.builder;
 
-public class MenuContainer<T> {
-    public final MenuContext<T> context;
-    public T argument;
+class MenuContainer<T> {
+    final MenuContext<T> context;
+    T argument;
+    boolean isClosed;
 
-    public MenuContainer(MenuContext<T> context, T argument) {
+    MenuContainer(MenuContext<T> context, T argument) {
         this.context = context;
         this.argument = argument;
     }
 
     @SuppressWarnings("unchecked")
-    public void setArgument(Object argument) {
+    void setArgument(Object argument) {
         this.argument = (T) argument;
     }
 }

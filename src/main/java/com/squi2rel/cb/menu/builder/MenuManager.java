@@ -36,6 +36,15 @@ public class MenuManager implements Listener {
         menus.get(player.getUniqueId()).setArgument(argument);
     }
 
+    public static void openMenu(Player player, Runnable defaultMenuRunner) {
+        MenuContainer<?> container = menus.get(player.getUniqueId());
+        if (container != null && container.isClosed) {
+            container.context.send(player, container.argument);
+        } else {
+            defaultMenuRunner.run();
+        }
+    }
+
     public static void closeAll() {
         for (UUID uuid : menus.keySet()) {
             Player player = Bukkit.getPlayer(uuid);
@@ -59,15 +68,21 @@ public class MenuManager implements Listener {
     public void onInventoryClick(InventoryClickEvent event) {
         Player player = (Player) event.getWhoClicked();
         MenuContainer<?> container = menus.get(player.getUniqueId());
-        if (container == null) return;
+        if (container == null || container.isClosed) return;
         event.setCancelled(true);
-        int slot = event.getRawSlot();
-        container.context.handleClick(player, slot, container.argument);
+        container.context.handleClick(player, event.getRawSlot(), event.getHotbarButton(), container.argument, event.getClick());
     }
 
     @EventHandler
     public void onInventoryClose(InventoryCloseEvent event) {
-        menus.remove(event.getPlayer().getUniqueId());
+        UUID uuid = event.getPlayer().getUniqueId();
+        MenuContainer<?> container = menus.get(uuid);
+        if (container == null) return;
+        if (container.context.isAutoClose()) {
+            menus.remove(uuid);
+        } else {
+            container.isClosed = true;
+        }
     }
 
     @EventHandler

@@ -1,11 +1,14 @@
 package com.squi2rel.cb.menu.builder;
 
 import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.ClickType;
 
+@SuppressWarnings("unused")
 public abstract class MenuContext<T> {
     protected MenuContext<?> parent;
     protected Object parentArgument;
     protected T argument;
+    protected boolean autoClose = true;
 
     public void setParent(MenuContext<?> parent) {
         this.parent = parent;
@@ -24,8 +27,16 @@ public abstract class MenuContext<T> {
         this.argument = argument;
     }
 
+    public void setAutoClose(boolean autoClose) {
+        this.autoClose = autoClose;
+    }
+
+    public boolean isAutoClose() {
+        return autoClose && (parent == null || parent.isAutoClose());
+    }
+
     @SuppressWarnings("unchecked")
-    protected void send(Player player, Object argument) {
+    void send(Player player, Object argument) {
         sendTo(player, (T) argument);
     }
 
@@ -33,7 +44,7 @@ public abstract class MenuContext<T> {
         sendTo(player, null);
     }
 
-    abstract public void handleClick(Player player, int slot, Object argument);
+    abstract public void handleClick(Player player, int slot, int hotbar, Object argument, ClickType type);
 
     abstract public void sendTo(Player player, T argument);
 }

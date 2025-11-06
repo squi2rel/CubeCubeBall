@@ -26,6 +26,7 @@ public class CBTabCompletion implements TabCompleter {
 
                 if (args.length == 1) {
                     ArrayList<String> commands = new ArrayList<>();
+                    commands.add("menu");
                     commands.add("generate");
                     commands.add("remove");
                     commands.add("creatematch");

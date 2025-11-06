@@ -27,7 +27,6 @@ public class Match {
     private final HashSet<Player> spectatorTeam = new HashSet<>();
     private final HashMap<Player, Integer> goals = new HashMap<>();
     private MatchState matchState;
-    private Location ballSpawn;
     private Player lastTouchPlayer;
     private int blueScore = 0;
     private int redScore = 0;
@@ -45,45 +44,14 @@ public class Match {
     }
 
     public void scanPoint(Player p) {
-
-        if (config.blueTeamSpawns == null) config.blueTeamSpawns = new ArrayList<>();
-        if (config.redTeamSpawns == null) config.redTeamSpawns = new ArrayList<>();
-
-        boolean scanBlue = config.blueTeamSpawns.isEmpty();
-        boolean scanRed = config.redTeamSpawns.isEmpty();
-
-        int radius = 75;
-        final Block block = p.getLocation().getBlock();
-        for (int x = -(radius); x <= radius; x++) {
-            for (int y = -(radius); y <= radius; y++) {
-                for (int z = -(radius); z <= radius; z++) {
-                    if (ballSpawn == null && block.getRelative(x, y, z).getType() == config.ballSpawnBlock) {
-                        ballSpawn = block.getRelative(x, y + 3, z).getLocation().add(.5, 0, .5);
-                    }
-                    if (scanBlue && block.getRelative(x, y, z).getType() == config.blueTeamSpawnBlock) {
-                        config.blueTeamSpawns.add(block.getRelative(x, y + 1, z).getLocation().add(.5, 0, .5));
-                    }
-                    if (scanRed && block.getRelative(x, y, z).getType() == config.redTeamSpawnBlock) {
-                        config.redTeamSpawns.add(block.getRelative(x, y + 1, z).getLocation().add(.5, 0, .5));
-                    }
-                    if (scanBlue && block.getRelative(x, y, z).getType() == config.blueTeamGoalBlock) {
-                        config.blueTeamGoalBlocks.add(block.getRelative(x, y, z).getLocation());
-                    }
-                    if (scanRed && block.getRelative(x, y, z).getType() == config.redTeamGoalBlock) {
-                        config.redTeamGoalBlocks.add(block.getRelative(x, y, z).getLocation());
-                    }
-                }
-            }
-        }
-
-        if (ballSpawn != null && !config.blueTeamSpawns.isEmpty() && !config.redTeamSpawns.isEmpty() &&
+        if (config.ballSpawn != null && !config.blueTeamSpawns.isEmpty() && !config.redTeamSpawns.isEmpty() &&
                 !config.blueTeamGoalBlocks.isEmpty() && !config.redTeamGoalBlocks.isEmpty()) {
             p.sendMessage(I18n.get("match_ready"));
             matchState = READY;
         } else {
             p.sendMessage(I18n.get("error"));
         }
-        p.sendMessage(I18n.format("ball_spawn", "status", ballSpawn != null ? "§aOK" : "§cKO"));
+        p.sendMessage(I18n.format("ball_spawn", "status", config.ballSpawn != null ? "§aOK" : "§cKO"));
         p.sendMessage(I18n.format("blue_spawn", "status", !config.blueTeamSpawns.isEmpty() ? "§aOK" : "§cKO", "count", config.blueTeamSpawns.size()));
         p.sendMessage(I18n.format("red_spawn", "status", !config.redTeamSpawns.isEmpty() ? "§aOK" : "§cKO", "count", config.redTeamSpawns.size()));
         p.sendMessage(I18n.format("blue_goal", "status", !config.blueTeamGoalBlocks.isEmpty() ? "§aOK" : "§cKO", "count", config.blueTeamGoalBlocks.size()));
@@ -110,10 +78,10 @@ public class Match {
         redTeam.clear();
         scanNearPlayers(config.blueTeamSpawns, Team.BLUE);
         scanNearPlayers(config.redTeamSpawns, Team.RED);
-        World world = ballSpawn.getWorld();
+        World world = config.ballSpawn.getWorld();
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (player.getWorld() != world) continue;
-            if (player.getLocation().distance(ballSpawn) < 256) {
+            if (player.getLocation().distance(config.ballSpawn) < 256) {
                 if (!blueTeam.contains(player) && !redTeam.contains(player)) addPlayerToTeam(player, Team.SPECTATOR);
             }
         }
@@ -142,7 +110,7 @@ public class Match {
     }
 
     private void sortSpawns() {
-        Comparator<Location> sort = Comparator.comparingDouble(l -> l.distance(ballSpawn));
+        Comparator<Location> sort = Comparator.comparingDouble(l -> l.distance(config.ballSpawn));
         config.blueTeamSpawns.sort(sort);
         config.redTeamSpawns.sort(sort);
     }
@@ -177,7 +145,7 @@ public class Match {
         int[] ids = randomIds(spawns.size(), team.size());
         int i = 0;
         for (Player player : team) {
-            player.teleport(getFacingLocation(spawns.get(ids[i++]), ballSpawn));
+            player.teleport(getFacingLocation(spawns.get(ids[i++]), config.ballSpawn));
         }
     }
 
@@ -219,7 +187,7 @@ public class Match {
         matchState = matchTimer > 0 ? IN_PROGRESS : OVERTIME;
         removeBall();
         id = BALL_MATCH_ID + UUID.randomUUID();
-        CubeBall.generateBall(config.cubeBallBlock, id, ballSpawn, null);
+        CubeBall.generateBall(config.cubeBallBlock, id, config.ballSpawn, null);
     }
 
     public static void surroundWith(Player player, Material block) {
@@ -247,7 +215,7 @@ public class Match {
                 blueTeam.remove(p);
                 redTeam.remove(p);
             }
-            p.sendMessage(I18n.format("your_team", "team", I18n.get(team == Team.BLUE ? "blue_name" : "red_name")));
+            p.sendMessage(I18n.format("your_team", "team", I18n.get(team == Team.BLUE ? "blue_name" : team == Team.SPECTATOR ? "spectator_name" : "red_name")));
             return true;
         }
         return false;
@@ -408,26 +376,32 @@ public class Match {
     }
 
     public void displayTeams(Player p) {
-        p.sendMessage(I18n.format("blue_team", "count", this.blueTeam.size()));
+        p.sendMessage(buildTeam());
+    }
+
+    public String buildTeam() {
+        StringBuilder sb = new StringBuilder();
+        sb.append(I18n.format("blue_team", "count", this.blueTeam.size())).append('\n');
         this.blueTeam.forEach(player -> {
             if (player != null) {
-                p.sendMessage("- " + ChatColor.BLUE + player.getDisplayName());
+                sb.append("- ").append(ChatColor.BLUE).append(player.getDisplayName()).append('\n');
             }
         });
 
-        p.sendMessage(I18n.format("red_team", "count", this.redTeam.size()));
+        sb.append(I18n.format("red_team", "count", this.redTeam.size())).append('\n');
         this.redTeam.forEach(player -> {
             if (player != null) {
-                p.sendMessage("- " + ChatColor.RED + player.getDisplayName());
+                sb.append("- ").append(ChatColor.RED).append(player.getDisplayName()).append('\n');
             }
         });
 
-        p.sendMessage(I18n.format("spectator_team", "count", this.spectatorTeam.size()));
+        sb.append(I18n.format("spectator_team", "count", this.spectatorTeam.size())).append('\n');
         this.spectatorTeam.forEach(player -> {
             if (player != null) {
-                p.sendMessage("- " + ChatColor.GREEN + player.getDisplayName());
+                sb.append("- ").append(ChatColor.GREEN).append(player.getDisplayName()).append('\n');
             }
         });
+        return sb.toString();
     }
 
     public String getName() {
