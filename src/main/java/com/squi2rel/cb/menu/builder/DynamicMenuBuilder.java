@@ -133,5 +133,8 @@ public class DynamicMenuBuilder<T> extends MenuBuilderBase {
     }
 
     private static class Refresh extends RuntimeException {
+        public Refresh() {
+            super("Only use in menu context!");
+        }
     }
 }

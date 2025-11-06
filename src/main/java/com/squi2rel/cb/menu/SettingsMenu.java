@@ -21,8 +21,8 @@ public class SettingsMenu {
         MatchConfig c = match.getConfig();
         builder.setLorePrefix(ChatColor.GRAY.toString());
         MatchState state = match.getMatchState();
-        builder.setSlot(0, 0, getState(state), match.getName(), null);
-        builder.setSlot(8, 0, BARRIER, I18n.get("menu_desc_delete"), null).setAction((p, v) -> {
+        builder.setSlot(0, 5, getState(state), match.getName(), null);
+        builder.setSlot(8, 5, BARRIER, I18n.get("menu_desc_delete"), null).setAction((p, v) -> {
             CubeBall.matches.remove(match.getName());
             if (CubeBall.current == match) CubeBall.current = null;
             CubeBall.save();
@@ -51,14 +51,14 @@ public class SettingsMenu {
             c.blueTeamSpawns.clear();
             builder.refresh();
         });
-        builder.setSlot(5, 1, RED_CONCRETE, I18n.get("menu_desc_redgoal"), I18n.format("menu_desc_addgoal_desc", "c", c.redTeamGoalBlocks.size())).setAction((p, v) -> {
+        builder.setSlot(1, 3, RED_CONCRETE, I18n.get("menu_desc_redgoal"), I18n.format("menu_desc_addgoal_desc", "c", c.redTeamGoalBlocks.size())).setAction((p, v) -> {
             c.redTeamGoalBlocks.addAll(BlockScanUtil.scanXZ(entityToBlock(p.getLocation().add(0, -0.5, 0)), 128));
             builder.refresh();
         }).setRightClickAction((p, v) -> {
             c.redTeamGoalBlocks.clear();
             builder.refresh();
         });
-        builder.setSlot(7, 1, BLUE_CONCRETE, I18n.get("menu_desc_bluegoal"), I18n.format("menu_desc_addgoal_desc", "c", c.blueTeamGoalBlocks.size())).setAction((p, v) -> {
+        builder.setSlot(3, 3, BLUE_CONCRETE, I18n.get("menu_desc_bluegoal"), I18n.format("menu_desc_addgoal_desc", "c", c.blueTeamGoalBlocks.size())).setAction((p, v) -> {
             c.blueTeamGoalBlocks.addAll(BlockScanUtil.scanXZ(entityToBlock(p.getLocation().add(0, -0.5, 0)), 128));
             builder.refresh();
         }).setRightClickAction((p, v) -> {
@@ -66,16 +66,16 @@ public class SettingsMenu {
             builder.refresh();
         });
         Location bs = c.ballSpawn;
-        builder.setSlot(1, 3, EMERALD_BLOCK, I18n.get("menu_desc_ballspawn"), bs == null ? null : I18n.format("menu_desc_ballspawn_desc", "x", bs.getBlockX(), "y", bs.getBlockY() - 2, "z", bs.getBlockZ())).setAction((p, v) -> {
+        builder.setSlot(5, 1, EMERALD_BLOCK, I18n.get("menu_desc_ballspawn"), bs == null ? null : I18n.format("menu_desc_ballspawn_desc", "x", bs.getBlockX(), "y", bs.getBlockY() - 2, "z", bs.getBlockZ())).setAction((p, v) -> {
             c.ballSpawn = entityToBlock(p.getLocation().add(0, 2, 0));
             builder.refresh();
         });
-        builder.setSlot(3, 3, c.cubeBallBlock, I18n.get("menu_desc_ballblock"), null).setAction((p, v) -> {
+        builder.setSlot(7, 1, c.cubeBallBlock, I18n.get("menu_desc_ballblock"), null).setAction((p, v) -> {
             p.sendMessage(I18n.get("menu_desc_material_name"));
             p.closeInventory();
             MenuManager.registerChatHandler(p, s -> {
                 Material m = Material.matchMaterial(s.toUpperCase());
-                if (m == null || !m.isBlock()) {
+                if (m == null || !m.isBlock() || m.isAir()) {
                     p.sendMessage(I18n.get("menu_desc_invalid_material"));
                     v.sendTo(p, v.getArgument());
                 }
@@ -83,12 +83,38 @@ public class SettingsMenu {
                 v.sendTo(p, v.getArgument());
             });
         });
-        builder.setSlot(5, 3, PLAYER_HEAD, I18n.get("menu_desc_scanplayer"), match.buildTeam()).setAction((p, v) -> {
+        builder.setSlot(5, 3, LODESTONE, I18n.get("menu_desc_settime"), I18n.format("menu_desc_settime_desc", "s", c.matchDuration)).setAction((p, v) -> {
+            p.sendMessage(I18n.get("menu_sendnumber"));
+            p.closeInventory();
+            MenuManager.registerChatHandler(p, s -> {
+                int num = tryParseInt(s);
+                if (num < 30 || num > 1800) {
+                    p.sendMessage(I18n.get("menu_numberinvalid"));
+                    return;
+                }
+                c.matchDuration = num;
+                v.sendTo(p);
+            });
+        });
+        builder.setSlot(7, 3, TARGET, I18n.get("menu_desc_settarget"), c.maxGoal <= 0 ? I18n.get("menu_desc_settarget_desc_u") : I18n.format("menu_desc_settarget_desc", "s", c.maxGoal)).setAction((p, v) -> {
+            p.sendMessage(I18n.get("menu_sendnumber"));
+            p.closeInventory();
+            MenuManager.registerChatHandler(p, s -> {
+                int num = tryParseInt(s);
+                if (num < 0) {
+                    p.sendMessage(I18n.get("menu_numberinvalid"));
+                    return;
+                }
+                c.maxGoal = num;
+                v.sendTo(p);
+            });
+        });
+        builder.setSlot(2, 2, OBSERVER, I18n.get("menu_desc_scanplayer"), match.buildTeam()).setAction((p, v) -> {
             match.scanPlayer();
             builder.refresh();
         });
         if (state == MatchState.IN_PROGRESS || state == MatchState.GOAL) {
-            builder.setSlot(7, 3, RED_WOOL, I18n.get("menu_desc_stop"), null).setAction((p, v) -> {
+            builder.setSlot(6, 2, RED_WOOL, I18n.get("menu_desc_stop"), null).setAction((p, v) -> {
                 match.removeBall();
                 match.reset();
                 builder.refresh();
@@ -99,12 +125,12 @@ public class SettingsMenu {
                     !c.redTeamSpawns.isEmpty() &&
                     !c.blueTeamGoalBlocks.isEmpty() &&
                     !c.redTeamGoalBlocks.isEmpty()) {
-                builder.setSlot(7, 3, LIME_WOOL, I18n.get("menu_desc_start"), null).setAction((p, v) -> {
+                builder.setSlot(6, 2, LIME_WOOL, I18n.get("menu_desc_start"), null).setAction((p, v) -> {
                     match.start(p);
                     p.closeInventory();
                 }).setPrefix(ChatColor.GREEN.toString());
             } else {
-                builder.setSlot(7, 3, GRAY_WOOL, I18n.get("menu_desc_start"), null).setAction((p, v) -> builder.refresh()).setPrefix(ChatColor.DARK_GRAY.toString());
+                builder.setSlot(6, 2, GRAY_WOOL, I18n.get("menu_desc_start"), null).setAction((p, v) -> builder.refresh()).setPrefix(ChatColor.DARK_GRAY.toString());
             }
         }
         builder.setSlot(4, 5, ARROW, I18n.get("menu_back"), null).setAction((p, v) -> {
@@ -160,5 +186,15 @@ public class SettingsMenu {
 
     private static Location entityToBlock(Location l) {
         return new Location(l.getWorld(), l.getBlockX() + 0.5, l.getBlockY() + 0.5, l.getBlockZ() + 0.5, l.getYaw(), l.getPitch());
+    }
+
+    private static int tryParseInt(String s) {
+        int num;
+        try {
+            num = Integer.parseInt(s);
+        } catch (NumberFormatException e) {
+            num = -1;
+        }
+        return num;
     }
 }

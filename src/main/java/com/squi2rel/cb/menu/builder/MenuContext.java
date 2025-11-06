@@ -41,7 +41,7 @@ public abstract class MenuContext<T> {
     }
 
     public void sendTo(Player player) {
-        sendTo(player, null);
+        sendTo(player, getArgument());
     }
 
     abstract public void handleClick(Player player, int slot, int hotbar, Object argument, ClickType type);
