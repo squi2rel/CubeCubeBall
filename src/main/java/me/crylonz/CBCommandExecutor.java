@@ -46,8 +46,7 @@ public class CBCommandExecutor implements CommandExecutor {
                         }
                     } else if (args[0].equalsIgnoreCase("stop") && player.hasPermission("cubecubeball.manage")) {
                         if (current != null) {
-                            Ball ball = balls.remove(BALL_MATCH_ID);
-                            if (ball != null && ball.getBall() != null) ball.getBall().remove();
+                            current.removeBall();
                             current.reset();
                             player.sendMessage(I18n.get("match_cancelled"));
                         } else {
@@ -78,7 +77,7 @@ public class CBCommandExecutor implements CommandExecutor {
                     }
                 } else if (args.length == 2) {
                     if (args[0].equalsIgnoreCase("creatematch") && player.hasPermission("cubecubeball.manage")) {
-                        balls.remove(BALL_MATCH_ID);
+                        if (current != null) current.removeBall();
                         current = new Match(args[1]);
                         matches.put(args[1], current);
                         player.sendMessage(I18n.get("new_match_created"));

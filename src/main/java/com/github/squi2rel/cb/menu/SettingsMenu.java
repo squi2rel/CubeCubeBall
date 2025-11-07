@@ -123,6 +123,7 @@ public class SettingsMenu {
         });
         builder.setSlot(2, 2, OBSERVER, I18n.get("menu_desc_scanplayer"), match.buildTeam()).setAction((p, v) -> {
             match.scanPlayer();
+            p.sendMessage(I18n.get("match_ready"));
             builder.refresh();
         });
         if (state == MatchState.IN_PROGRESS || state == MatchState.GOAL) {
@@ -136,7 +137,8 @@ public class SettingsMenu {
                     !c.blueTeamSpawns.isEmpty() &&
                     !c.redTeamSpawns.isEmpty() &&
                     !c.blueTeamGoalBlocks.isEmpty() &&
-                    !c.redTeamGoalBlocks.isEmpty()) {
+                    !c.redTeamGoalBlocks.isEmpty() &&
+                    match.getMatchState() == MatchState.READY) {
                 builder.setSlot(6, 2, LIME_WOOL, I18n.get("menu_desc_start"), null).setAction((p, v) -> {
                     match.start(p);
                     p.closeInventory();

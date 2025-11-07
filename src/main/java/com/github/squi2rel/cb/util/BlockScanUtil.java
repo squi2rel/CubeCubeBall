@@ -36,7 +36,7 @@ public class BlockScanUtil {
             Block b = queue.poll();
             if (b.getType() != target || b.getY() != startY) continue;
 
-            result.add(b.getLocation().add(0.5, 0.5, 0.5));
+            result.add(b.getLocation());
 
             for (BlockFace face : HORIZONTAL) {
                 Block nb = b.getRelative(face);

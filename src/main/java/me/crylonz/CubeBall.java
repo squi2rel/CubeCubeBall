@@ -31,7 +31,6 @@ public class CubeBall extends JavaPlugin {
     public static Match current;
     public static HashMap<String, Match> matches = new HashMap<>();
 
-    public static String BALL_MATCH_ID = "match_";
     public static Plugin plugin;
     public static int matchTimer = 0;
 
@@ -184,6 +183,8 @@ public class CubeBall extends JavaPlugin {
                 if (ballData.getBall() != null) {
                     ballData.getBall().setTicksLived(1);
 
+                    Match match = matches.get(ballData.getId());
+
                     ballData.getBall().getNearbyEntities(10, 10, 10)
                             .stream().filter(entity -> entity instanceof Player)
                             .forEach(p -> {
@@ -203,8 +204,8 @@ public class CubeBall extends JavaPlugin {
                                     ballData.getBall().getWorld().playSound(ballData.getBall().getLocation(), Sound.BLOCK_STONE_HIT, 10, 1);
                                     ballData.setPlayerCollisionTick(0);
 
-                                    if (current != null) {
-                                        current.setLastTouchPlayer(player);
+                                    if (match != null) {
+                                        match.setLastTouchPlayer(player);
                                     }
                                 }
                             });
@@ -233,8 +234,8 @@ public class CubeBall extends JavaPlugin {
                         }
                     }
 
-                    if (current != null && ballData.getId().equals(BALL_MATCH_ID)) {
-                        current.checkGoal(ballData.getBall().getLocation());
+                    if (match != null) {
+                        match.checkGoal(ballData.getBall().getLocation());
                     }
 
                     ballData.setLastVelocity(ballData.getBall().getVelocity().clone());

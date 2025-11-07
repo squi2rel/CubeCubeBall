@@ -30,7 +30,6 @@ public class Match {
     private UUID lastTouchPlayer;
     private int blueScore = 0;
     private int redScore = 0;
-    private String id;
     private final MatchConfig config;
 
     public Match(String name) {
@@ -85,6 +84,7 @@ public class Match {
                 if (!blueTeam.contains(player) && !redTeam.contains(player)) addPlayerToTeam(player, Team.SPECTATOR);
             }
         }
+        matchState = READY;
     }
 
     public void start(Player p) {
@@ -185,8 +185,7 @@ public class Match {
     private void startRound() {
         matchState = matchTimer > 0 ? IN_PROGRESS : OVERTIME;
         removeBall();
-        id = BALL_MATCH_ID + UUID.randomUUID();
-        CubeBall.generateBall(config.cubeBallBlock, id, config.ballSpawn, null);
+        generateBall(config.cubeBallBlock, name, config.ballSpawn, null);
     }
 
     private static void surroundWith(Player player, Material block) {
@@ -285,7 +284,7 @@ public class Match {
             matchState = GOAL;
             endMatch();
         }
-        destroyBall(BALL_MATCH_ID);
+        destroyBall(name);
     }
 
     public void spawnFirework(Team team) {
@@ -343,6 +342,7 @@ public class Match {
     }
 
     private static String getName(UUID uuid) {
+        if (uuid == null) return "null";
         Player p = Bukkit.getPlayer(uuid);
         return p != null ? p.getDisplayName() : uuid.toString();
     }
@@ -363,7 +363,7 @@ public class Match {
 
     public double computeSpeedGoal() {
 
-        Ball ball = balls.get(BALL_MATCH_ID);
+        Ball ball = balls.get(name);
 
         if (ball != null && ball.getBall() != null) {
             return Math.round((Math.abs((ball.getLastVelocity().getX())) + Math.abs((ball.getLastVelocity().getY())) + Math.abs((ball.getLastVelocity().getZ()))) * 100);
@@ -484,7 +484,7 @@ public class Match {
     }
 
     public void removeBall() {
-        destroyBall(id);
+        destroyBall(name);
     }
 
     public boolean pause() {
