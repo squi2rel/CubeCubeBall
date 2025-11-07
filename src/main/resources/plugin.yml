@@ -3,7 +3,7 @@ main: me.crylonz.CubeBall
 version: 1.0.0
 author: Crylonz, squi2rel
 description: Play football in Minecraft
-api-version: 1.13
+api-version: 1.16
 commands:
   ccb:
     permission: cubecubeball.manage
