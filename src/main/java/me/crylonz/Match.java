@@ -257,7 +257,7 @@ public class Match {
             triggerGoalAnimation(Team.RED);
         }
 
-        if (matchState.equals(IN_PROGRESS) && (data.maxGoal == 0 || (blueScore != data.maxGoal && redScore != data.maxGoal))) {
+        if (matchState.equals(IN_PROGRESS) && (data.maxGoal <= 0 || (blueScore != data.maxGoal && redScore != data.maxGoal))) {
             sendScoreToPlayer();
             matchState = GOAL;
             getServer().getScheduler().scheduleSyncDelayedTask(plugin, this::startDelayedRound, 20 * 3);

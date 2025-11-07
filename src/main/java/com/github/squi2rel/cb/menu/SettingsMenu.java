@@ -199,6 +199,10 @@ public class SettingsMenu {
             p.sendMessage(I18n.get("menu_new_name"));
             p.closeInventory();
             MenuManager.registerChatHandler(p, s -> {
+                if (CubeBall.matches.get(s) != null) {
+                    p.sendMessage(I18n.get("menu_new_existed"));
+                    return;
+                }
                 Match m = new Match(s, p);
                 CubeBall.matches.put(s, m);
                 CubeBall.save();
