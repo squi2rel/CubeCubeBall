@@ -1,4 +1,4 @@
-package com.squi2rel.cb;
+package com.github.squi2rel.cb;
 
 public class GameController {
 }

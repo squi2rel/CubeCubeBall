@@ -1,4 +1,4 @@
-package com.squi2rel.cb.menu.builder;
+package com.github.squi2rel.cb.menu.builder;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;

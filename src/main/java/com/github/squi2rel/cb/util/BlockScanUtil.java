@@ -1,4 +1,4 @@
-package com.squi2rel.cb.util;
+package com.github.squi2rel.cb.util;
 
 import org.bukkit.Location;
 import org.bukkit.Material;

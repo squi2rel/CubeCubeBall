@@ -1,8 +1,8 @@
 package me.crylonz;
 
-import com.squi2rel.cb.I18n;
-import com.squi2rel.cb.menu.SettingsMenu;
-import com.squi2rel.cb.menu.builder.MenuManager;
+import com.github.squi2rel.cb.I18n;
+import com.github.squi2rel.cb.menu.SettingsMenu;
+import com.github.squi2rel.cb.menu.builder.MenuManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;

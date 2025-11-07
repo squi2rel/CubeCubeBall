@@ -1,9 +1,13 @@
-package com.squi2rel.cb.menu;
+package com.github.squi2rel.cb.menu;
 
-import com.squi2rel.cb.I18n;
-import com.squi2rel.cb.MatchConfig;
-import com.squi2rel.cb.menu.builder.*;
-import com.squi2rel.cb.util.BlockScanUtil;
+import com.github.squi2rel.cb.I18n;
+import com.github.squi2rel.cb.MatchConfig;
+import com.github.squi2rel.cb.menu.builder.DynamicMenuBuilder;
+import com.github.squi2rel.cb.menu.builder.MenuBuilder;
+import com.github.squi2rel.cb.menu.builder.MenuContext;
+import com.github.squi2rel.cb.menu.builder.MenuManager;
+import com.github.squi2rel.cb.menu.builder.*;
+import com.github.squi2rel.cb.util.BlockScanUtil;
 import me.crylonz.CubeBall;
 import me.crylonz.Match;
 import me.crylonz.MatchState;

@@ -1,8 +1,8 @@
 package me.crylonz;
 
-import com.squi2rel.cb.I18n;
-import com.squi2rel.cb.MatchConfig;
-import com.squi2rel.cb.menu.builder.MenuManager;
+import com.github.squi2rel.cb.I18n;
+import com.github.squi2rel.cb.MatchConfig;
+import com.github.squi2rel.cb.menu.builder.MenuManager;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bstats.bukkit.Metrics;
@@ -10,7 +10,6 @@ import org.bukkit.*;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.MemoryConfiguration;
-import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.FallingBlock;
 import org.bukkit.entity.Player;
 import org.bukkit.metadata.FixedMetadataValue;
@@ -20,7 +19,6 @@ import org.bukkit.util.Vector;
 
 import java.io.File;
 import java.util.*;
-import java.util.logging.Logger;
 
 import static java.lang.Math.abs;
 import static me.crylonz.MatchState.*;

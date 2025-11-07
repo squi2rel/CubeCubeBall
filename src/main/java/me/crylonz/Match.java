@@ -1,7 +1,7 @@
 package me.crylonz;
 
-import com.squi2rel.cb.I18n;
-import com.squi2rel.cb.MatchConfig;
+import com.github.squi2rel.cb.I18n;
+import com.github.squi2rel.cb.MatchConfig;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
