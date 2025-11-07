@@ -69,6 +69,14 @@ public class SettingsMenu {
             c.blueTeamGoalBlocks.clear();
             builder.refresh();
         });
+        builder.setSlot(4, 2, TNT, I18n.get("menu_desc_dashcooldown"), c.dashCooldown > 0 ? I18n.format("menu_desc_dashcooldown_desc", "s", c.dashCooldown) : I18n.get("menu_desc_dashcooldown_desc_d")).setAction((p, v) -> {
+            p.sendMessage(I18n.get("menu_sendnumber"));
+            p.closeInventory();
+            MenuManager.registerChatHandler(p, s -> {
+                c.dashCooldown = tryParseInt(s);
+                v.sendTo(p);
+            });
+        });
         Location bs = c.ballSpawn;
         builder.setSlot(5, 1, EMERALD_BLOCK, I18n.get("menu_desc_ballspawn"), bs == null ? null : I18n.format("menu_desc_ballspawn_desc", "x", bs.getBlockX(), "y", bs.getBlockY() - 2, "z", bs.getBlockZ())).setAction((p, v) -> {
             c.ballSpawn = entityToBlock(p.getLocation().add(0, 2, 0));

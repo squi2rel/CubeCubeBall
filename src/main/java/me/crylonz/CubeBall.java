@@ -36,8 +36,7 @@ public class CubeBall extends JavaPlugin {
     public static int matchTimer = 0;
 
 
-    public static HashMap<Player, Long> cooldown;
-    public static long cooldownTime = 15000;
+    public static HashMap<UUID, Long> cooldown;
 
 
     public static void generateBall(Material material, String id, Location location, Vector lastVelocity) {
@@ -142,9 +141,10 @@ public class CubeBall extends JavaPlugin {
         getServer().getScheduler().scheduleSyncRepeatingTask(this, () -> {
 
             cooldown.entrySet().removeIf(entry -> {
-                long targetTime = entry.getValue() + cooldownTime;
+                long targetTime = entry.getValue();
                 boolean b = System.currentTimeMillis() > targetTime;
-                entry.getKey().spigot().sendMessage(ChatMessageType.ACTION_BAR, getDashCooldownText(b, targetTime));
+                Player p = Bukkit.getPlayer(entry.getKey());
+                if (p != null) p.spigot().sendMessage(ChatMessageType.ACTION_BAR, getDashCooldownText(b, targetTime));
                 return b;
             });
 

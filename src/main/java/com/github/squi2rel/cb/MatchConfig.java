@@ -13,6 +13,7 @@ public class MatchConfig {
     public Material cubeBallBlock = Material.NETHERITE_BLOCK;
     public int matchDuration = 300;
     public int maxGoal = 0;
+    public int dashCooldown = 15;
 
     public Location ballSpawn;
 
@@ -25,6 +26,7 @@ public class MatchConfig {
         config.set("cubeBallBlock", cubeBallBlock.name());
         config.set("matchDuration", matchDuration);
         config.set("maxGoal", maxGoal);
+        config.set("dashCooldown", dashCooldown);
 
         config.set("ballSpawn", ballSpawn);
         config.set("blueTeamGoalBlocks", blueTeamGoalBlocks);
@@ -37,6 +39,7 @@ public class MatchConfig {
         cubeBallBlock = getMaterial(config.getString("cubeBallBlock"));
         matchDuration = config.getInt("matchDuration");
         maxGoal = config.getInt("maxGoal");
+        dashCooldown = config.getInt("dashCooldown");
 
         ballSpawn = config.getSerializable("ballSpawn", Location.class);
         blueTeamGoalBlocks = getLocations(config, "blueTeamGoalBlocks");

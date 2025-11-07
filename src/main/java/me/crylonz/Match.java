@@ -25,9 +25,9 @@ public class Match {
     private final HashSet<Player> blueTeam = new HashSet<>();
     private final HashSet<Player> redTeam = new HashSet<>();
     private final HashSet<Player> spectatorTeam = new HashSet<>();
-    private final HashMap<Player, Integer> goals = new HashMap<>();
+    private final HashMap<UUID, Integer> goals = new HashMap<>();
     private MatchState matchState;
-    private Player lastTouchPlayer;
+    private UUID lastTouchPlayer;
     private int blueScore = 0;
     private int redScore = 0;
     private String id;
@@ -115,7 +115,6 @@ public class Match {
         config.redTeamSpawns.sort(sort);
     }
 
-
     public int[] randomIds(int size, int n) {
         if (size <= 0 || n <= 0) return new int[0];
 
@@ -190,7 +189,7 @@ public class Match {
         CubeBall.generateBall(config.cubeBallBlock, id, config.ballSpawn, null);
     }
 
-    public static void surroundWith(Player player, Material block) {
+    private static void surroundWith(Player player, Material block) {
         Block pos = player.getLocation().getBlock();
         int[][] offsets = {{1, 0}, {0, 1}, {-1, 0}, {0, -1}};
         for (int[] offset : offsets) {
@@ -199,6 +198,30 @@ public class Match {
         }
         pos.getRelative(0, 2, 0).setType(block);
     }
+
+    public void replacePlayer(Player player) {
+        replacePlayer(blueTeam, player);
+        replacePlayer(redTeam, player);
+        replacePlayer(spectatorTeam, player);
+    }
+
+    private static void replacePlayer(HashSet<Player> players, Player newPlayer) {
+        UUID uuid = newPlayer.getUniqueId();
+        Player oldPlayer = null;
+
+        for (Player p : players) {
+            if (p.getUniqueId().equals(uuid)) {
+                oldPlayer = p;
+                break;
+            }
+        }
+
+        if (oldPlayer != null) {
+            players.remove(oldPlayer);
+            players.add(newPlayer);
+        }
+    }
+
 
     public boolean addPlayerToTeam(Player p, Team team) {
         if (p != null) {
@@ -298,27 +321,30 @@ public class Match {
         String score = ChatColor.BLUE.toString() + getBlueScore() + ChatColor.WHITE + " - " + ChatColor.RED + getRedScore();
         sendMessageToAllPlayer(title, score, 3, Sound.ENTITY_RABBIT_DEATH, 0.5f);
 
-        ArrayList<Map.Entry<Player, Integer>> list = new ArrayList<>(goals.entrySet());
+        ArrayList<Map.Entry<UUID, Integer>> list = new ArrayList<>(goals.entrySet());
         list.sort((e1, e2) -> Integer.compare(e2.getValue(), e1.getValue()));
         getAllPlayer(true).forEach(player -> {
-            if (player != null) {
-                player.sendMessage(I18n.get("game_over"));
-                player.sendMessage(I18n.get("goal_rank"));
-                player.sendMessage(I18n.format("total_goals", "total", redScore + blueScore));
-                int i = 0;
-                for (Map.Entry<Player, Integer> entry : list) {
-                    player.sendMessage(I18n.format("player_goal",
-                            "rank", ++i,
-                            "color", (blueTeam.contains(entry.getKey()) ? ChatColor.BLUE : ChatColor.RED),
-                            "name", entry.getKey().getDisplayName(),
-                            "goals", entry.getValue()
-                    ));
-                }
+            player.sendMessage(I18n.get("game_over"));
+            player.sendMessage(I18n.get("goal_rank"));
+            player.sendMessage(I18n.format("total_goals", "total", redScore + blueScore));
+            int i = 0;
+            for (Map.Entry<UUID, Integer> entry : list) {
+                player.sendMessage(I18n.format("player_goal",
+                        "rank", ++i,
+                        "color", (blueTeam.stream().anyMatch(p -> p.getUniqueId().equals(entry.getKey())) ? ChatColor.BLUE : ChatColor.RED),
+                        "name", getName(entry.getKey()),
+                        "goals", entry.getValue()
+                ));
             }
         });
 
         removeBall();
         reset();
+    }
+
+    private static String getName(UUID uuid) {
+        Player p = Bukkit.getPlayer(uuid);
+        return p != null ? p.getDisplayName() : uuid.toString();
     }
 
     public void reset() {
@@ -330,7 +356,7 @@ public class Match {
 
     public void sendScoreToPlayer() {
         String title = I18n.format("score_title", "blue", blueScore, "red", redScore);
-        String subtitle = I18n.format("score_subtitle", "name", lastTouchPlayer.getDisplayName().toUpperCase(), "speed", computeSpeedGoal());
+        String subtitle = I18n.format("score_subtitle", "name", getName(lastTouchPlayer).toUpperCase(), "speed", computeSpeedGoal());
         goals.put(lastTouchPlayer, goals.getOrDefault(lastTouchPlayer, 0) + 1);
         sendMessageToAllPlayer(title, subtitle, 3, Sound.WEATHER_RAIN, 0.5f);
     }
@@ -409,7 +435,7 @@ public class Match {
     }
 
     public void setLastTouchPlayer(Player lastTouchPlayer) {
-        this.lastTouchPlayer = lastTouchPlayer;
+        this.lastTouchPlayer = lastTouchPlayer.getUniqueId();
     }
 
     public HashSet<Player> getBlueTeam() {

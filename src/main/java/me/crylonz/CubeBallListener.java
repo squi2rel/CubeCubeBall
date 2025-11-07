@@ -4,9 +4,11 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.util.Vector;
@@ -63,21 +65,32 @@ public class CubeBallListener implements Listener {
     }
 
     @EventHandler
+    public static void onPlayerJoin(PlayerJoinEvent e) {
+        Player player = e.getPlayer();
+        for (Match match : matches.values()) {
+            match.replacePlayer(player);
+        }
+    }
+
+    @EventHandler
     public static void onSwapItem(PlayerSwapHandItemsEvent event) {
         for (Match match : matches.values()) {
-            if (match != null && match.getMatchState() == MatchState.IN_PROGRESS && match.containsPlayer(event.getPlayer())) {
-                if (!cooldown.containsKey(event.getPlayer())) {
-                    cooldown.put(event.getPlayer(), System.currentTimeMillis());
+            if (match.getMatchState() == MatchState.IN_PROGRESS && match.containsPlayer(event.getPlayer())) {
+                int cd = match.getConfig().dashCooldown;
+                if (cd <= 0) break;
+                if (!cooldown.containsKey(event.getPlayer().getUniqueId())) {
+                    cooldown.put(event.getPlayer().getUniqueId(), System.currentTimeMillis() + cd * 1000L);
                     launch(event.getPlayer(), 2);
                     event.setCancelled(true);
                 }
+                break;
             }
         }
     }
 
     @EventHandler
     public static void onPlayerLeave(PlayerQuitEvent event) {
-        cooldown.remove(event.getPlayer());
+        cooldown.remove(event.getPlayer().getUniqueId());
     }
 
     private Ball fetchBallContacting(Location location) {
