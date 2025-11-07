@@ -220,7 +220,7 @@ public class SettingsMenu {
     }).build();
 
     private static Material getState(MatchState state) {
-        return state == MatchState.CREATED ? GRAY_WOOL : state == MatchState.READY ? YELLOW_WOOL : GREEN_WOOL;
+        return state == MatchState.CREATED ? GRAY_WOOL : state == MatchState.READY ? YELLOW_WOOL : LIME_WOOL;
     }
 
     private static Location entityToBlock(Location l) {

@@ -362,7 +362,7 @@ public class Match {
         team.forEach(player -> {
             if (player != null) {
                 player.sendTitle(title, subtitle, 1, duration * 20, 1);
-                player.playSound(player.getLocation(), sound, 1, pitch);
+                player.playSound(player.getLocation(), sound, 10, pitch);
             }
         });
     }
