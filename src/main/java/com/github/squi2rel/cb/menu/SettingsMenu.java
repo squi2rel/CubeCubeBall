@@ -56,14 +56,14 @@ public class SettingsMenu {
             builder.refresh();
         });
         builder.setSlot(1, 3, RED_CONCRETE, I18n.get("menu_desc_redgoal"), I18n.format("menu_desc_addgoal_desc", "c", c.redTeamGoalBlocks.size())).setAction((p, v) -> {
-            c.redTeamGoalBlocks.addAll(BlockScanUtil.scanXZ(entityToBlock(p.getLocation().add(0, -0.5, 0)), 128));
+            c.redTeamGoalBlocks = BlockScanUtil.scanXZ(entityToBlock(p.getLocation().add(0, -0.5, 0)), 128);
             builder.refresh();
         }).setRightClickAction((p, v) -> {
             c.redTeamGoalBlocks.clear();
             builder.refresh();
         });
         builder.setSlot(3, 3, BLUE_CONCRETE, I18n.get("menu_desc_bluegoal"), I18n.format("menu_desc_addgoal_desc", "c", c.blueTeamGoalBlocks.size())).setAction((p, v) -> {
-            c.blueTeamGoalBlocks.addAll(BlockScanUtil.scanXZ(entityToBlock(p.getLocation().add(0, -0.5, 0)), 128));
+            c.blueTeamGoalBlocks = BlockScanUtil.scanXZ(entityToBlock(p.getLocation().add(0, -0.5, 0)), 128);
             builder.refresh();
         }).setRightClickAction((p, v) -> {
             c.blueTeamGoalBlocks.clear();
