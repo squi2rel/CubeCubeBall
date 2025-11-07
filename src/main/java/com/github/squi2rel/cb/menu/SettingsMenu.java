@@ -95,7 +95,7 @@ public class SettingsMenu {
                 v.sendTo(p, v.getArgument());
             });
         });
-        builder.setSlot(5, 3, LODESTONE, I18n.get("menu_desc_settime"), I18n.format("menu_desc_settime_desc", "s", c.matchDuration)).setAction((p, v) -> {
+        builder.setSlot(5, 3, SAND, I18n.get("menu_desc_settime"), I18n.format("menu_desc_settime_desc", "s", c.matchDuration)).setAction((p, v) -> {
             p.sendMessage(I18n.get("menu_sendnumber"));
             p.closeInventory();
             MenuManager.registerChatHandler(p, s -> {

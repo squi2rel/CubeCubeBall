@@ -99,10 +99,10 @@ public class CubeBall extends JavaPlugin {
 
         launchRepeatingTask();
 
-        Objects.requireNonNull(this.getCommand("cb"), "Command cb not found")
+        Objects.requireNonNull(this.getCommand("ccb"), "Command ccb not found")
                 .setExecutor(new CBCommandExecutor());
 
-        Objects.requireNonNull(getCommand("cb")).setTabCompleter(new CBTabCompletion());
+        Objects.requireNonNull(getCommand("ccb")).setTabCompleter(new CBTabCompletion());
     }
 
     public void onDisable() {

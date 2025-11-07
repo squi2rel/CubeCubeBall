@@ -22,7 +22,7 @@ public class CBTabCompletion implements TabCompleter {
         if (sender instanceof Player) {
             Player player = (Player) sender;
 
-            if (cmd.getName().equalsIgnoreCase("cb") && player.hasPermission("cubeball.manage")) {
+            if (cmd.getName().equalsIgnoreCase("ccb") && player.hasPermission("cubecubeball.manage")) {
 
                 if (args.length == 1) {
                     ArrayList<String> commands = new ArrayList<>();
