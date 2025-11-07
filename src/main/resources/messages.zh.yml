@@ -1,5 +1,6 @@
 # CubeCubeBall 中文消息
 match_ready: "[CCB] 比赛已就绪"
+match_removed: "[CCB] 比赛已删除!"
 match_starting: "[CCB] §a比赛即将开始!"
 match_started: "[CCB] §a比赛开始! 时长: §6{min}:{sec}"
 max_goals: "[CCB] §a最大进球数: {max}"

@@ -1,5 +1,6 @@
 # CubeCubeBall English Messages
 match_ready: "[CCB] MATCH READY"
+match_removed: "[CCB] Match deleted!"
 match_starting: "[CCB] §aMatch starting !"
 match_started: "[CCB] §aMatch started ! Duration : §6{min}:{sec}"
 max_goals: "[CCB] §aMax goals : {max}"
