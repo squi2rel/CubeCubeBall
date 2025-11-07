@@ -1,7 +1,7 @@
 package me.crylonz;
 
 import com.github.squi2rel.cb.I18n;
-import com.github.squi2rel.cb.MatchConfig;
+import com.github.squi2rel.cb.MatchData;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
@@ -19,6 +19,7 @@ import static me.crylonz.MatchState.*;
 import static org.bukkit.Bukkit.getServer;
 
 public class Match {
+    public int matchTimer;
 
     private final String name;
     private final Random rand = new Random();
@@ -30,33 +31,15 @@ public class Match {
     private UUID lastTouchPlayer;
     private int blueScore = 0;
     private int redScore = 0;
-    private final MatchConfig config;
+    private final MatchData data;
 
-    public Match(String name) {
-        this(name, new MatchConfig());
+    public Match(String name, Player player) {
+        this(name, MatchData.create(player.getName(), player.getUniqueId()));
     }
-
-    public Match(String name, MatchConfig config) {
+    public Match(String name, MatchData config) {
         this.name = name;
-        this.config = config;
+        this.data = config;
         matchState = CREATED;
-    }
-
-    public void scanPoint(Player p) {
-        if (config.ballSpawn != null && !config.blueTeamSpawns.isEmpty() && !config.redTeamSpawns.isEmpty() &&
-                !config.blueTeamGoalBlocks.isEmpty() && !config.redTeamGoalBlocks.isEmpty()) {
-            p.sendMessage(I18n.get("match_ready"));
-            matchState = READY;
-        } else {
-            p.sendMessage(I18n.get("error"));
-        }
-        p.sendMessage(I18n.format("ball_spawn", "status", config.ballSpawn != null ? "§aOK" : "§cKO"));
-        p.sendMessage(I18n.format("blue_spawn", "status", !config.blueTeamSpawns.isEmpty() ? "§aOK" : "§cKO", "count", config.blueTeamSpawns.size()));
-        p.sendMessage(I18n.format("red_spawn", "status", !config.redTeamSpawns.isEmpty() ? "§aOK" : "§cKO", "count", config.redTeamSpawns.size()));
-        p.sendMessage(I18n.format("blue_goal", "status", !config.blueTeamGoalBlocks.isEmpty() ? "§aOK" : "§cKO", "count", config.blueTeamGoalBlocks.size()));
-        p.sendMessage(I18n.format("red_goal", "status", !config.redTeamGoalBlocks.isEmpty() ? "§aOK" : "§cKO", "count", config.redTeamGoalBlocks.size()));
-        p.sendMessage("------------------");
-        p.sendMessage(I18n.get("next_step"));
     }
 
     public void scanNearPlayers(List<Location> spawns, Team team) {
@@ -75,12 +58,12 @@ public class Match {
     public void scanPlayer() {
         blueTeam.clear();
         redTeam.clear();
-        scanNearPlayers(config.blueTeamSpawns, Team.BLUE);
-        scanNearPlayers(config.redTeamSpawns, Team.RED);
-        World world = config.ballSpawn.getWorld();
+        scanNearPlayers(data.blueTeamSpawns, Team.BLUE);
+        scanNearPlayers(data.redTeamSpawns, Team.RED);
+        World world = data.ballSpawn.getWorld();
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (player.getWorld() != world) continue;
-            if (player.getLocation().distance(config.ballSpawn) < 256) {
+            if (player.getLocation().distance(data.ballSpawn) < 256) {
                 if (!blueTeam.contains(player) && !redTeam.contains(player)) addPlayerToTeam(player, Team.SPECTATOR);
             }
         }
@@ -93,13 +76,13 @@ public class Match {
                 sortSpawns();
 
                 startDelayedRound();
-                matchTimer = config.matchDuration;
+                matchTimer = data.matchDuration;
                 matchState = IN_PROGRESS;
 
                 p.sendMessage(I18n.get("match_starting"));
                 getAllPlayer(true).forEach(player -> {
                     player.sendMessage(I18n.format("match_started", "min", matchTimer / 60, "sec", matchTimer - ((matchTimer / 60) * 60)));
-                    player.sendMessage(I18n.format("max_goals", "max", config.maxGoal <= 0 ? I18n.get("max_goals_unlimited") : config.maxGoal));
+                    player.sendMessage(I18n.format("max_goals", "max", data.maxGoal <= 0 ? I18n.get("max_goals_unlimited") : data.maxGoal));
                 });
             } else {
                 p.sendMessage(I18n.get("need_add_players"));
@@ -110,9 +93,9 @@ public class Match {
     }
 
     private void sortSpawns() {
-        Comparator<Location> sort = Comparator.comparingDouble(l -> l.distance(config.ballSpawn));
-        config.blueTeamSpawns.sort(sort);
-        config.redTeamSpawns.sort(sort);
+        Comparator<Location> sort = Comparator.comparingDouble(l -> l.distance(data.ballSpawn));
+        data.blueTeamSpawns.sort(sort);
+        data.redTeamSpawns.sort(sort);
     }
 
     public int[] randomIds(int size, int n) {
@@ -144,7 +127,7 @@ public class Match {
         int[] ids = randomIds(spawns.size(), team.size());
         int i = 0;
         for (Player player : team) {
-            player.teleport(getFacingLocation(spawns.get(ids[i++]), config.ballSpawn));
+            player.teleport(getFacingLocation(spawns.get(ids[i++]), data.ballSpawn));
         }
     }
 
@@ -162,8 +145,8 @@ public class Match {
     }
 
     private void startDelayedRound() {
-        teleportTeam(blueTeam, config.blueTeamSpawns);
-        teleportTeam(redTeam, config.redTeamSpawns);
+        teleportTeam(blueTeam, data.blueTeamSpawns);
+        teleportTeam(redTeam, data.redTeamSpawns);
 
         PotionEffect effect = new PotionEffect(PotionEffectType.SLOWNESS, 80, 255);
         getAllPlayer(false).forEach(player -> {
@@ -185,7 +168,7 @@ public class Match {
     private void startRound() {
         matchState = matchTimer > 0 ? IN_PROGRESS : OVERTIME;
         removeBall();
-        generateBall(config.cubeBallBlock, name, config.ballSpawn, null);
+        generateBall(data.cubeBallBlock, name, data.ballSpawn, null);
     }
 
     private static void surroundWith(Player player, Material block) {
@@ -222,7 +205,7 @@ public class Match {
     }
 
 
-    public boolean addPlayerToTeam(Player p, Team team) {
+    public void addPlayerToTeam(Player p, Team team) {
         if (p != null) {
             if (team.equals(Team.BLUE)) {
                 blueTeam.add(p);
@@ -238,9 +221,7 @@ public class Match {
                 redTeam.remove(p);
             }
             p.sendMessage(I18n.format("your_team", "team", I18n.get(team == Team.BLUE ? "blue_name" : team == Team.SPECTATOR ? "spectator_name" : "red_name")));
-            return true;
         }
-        return false;
     }
 
     public void checkGoal(Location ballLocation) {
@@ -248,7 +229,7 @@ public class Match {
 
             int ballX = ballLocation.getBlockX();
             int ballZ = ballLocation.getBlockZ();
-            for (Location blockLocation : config.blueTeamGoalBlocks) {
+            for (Location blockLocation : data.blueTeamGoalBlocks) {
                 if (ballX == blockLocation.getBlockX() &&
                         ballZ == blockLocation.getBlockZ()) {
                     goal(Team.RED);
@@ -256,7 +237,7 @@ public class Match {
                 }
             }
 
-            for (Location blockLocation : config.redTeamGoalBlocks) {
+            for (Location blockLocation : data.redTeamGoalBlocks) {
                 if (ballX == blockLocation.getBlockX() &&
                         ballZ == blockLocation.getBlockZ()) {
                     goal(Team.BLUE);
@@ -276,7 +257,7 @@ public class Match {
             triggerGoalAnimation(Team.RED);
         }
 
-        if (matchState.equals(IN_PROGRESS) && (config.maxGoal == 0 || (blueScore != config.maxGoal && redScore != config.maxGoal))) {
+        if (matchState.equals(IN_PROGRESS) && (data.maxGoal == 0 || (blueScore != data.maxGoal && redScore != data.maxGoal))) {
             sendScoreToPlayer();
             matchState = GOAL;
             getServer().getScheduler().scheduleSyncDelayedTask(plugin, this::startDelayedRound, 20 * 3);
@@ -388,21 +369,17 @@ public class Match {
 
     public void triggerGoalAnimation(Team team) {
         if (team.equals(Team.BLUE)) {
-            config.redTeamGoalBlocks.forEach(block -> {
+            data.redTeamGoalBlocks.forEach(block -> {
                 Objects.requireNonNull(block.getWorld()).spawnEntity(block.getBlock().getLocation(), EntityType.FIREWORK_ROCKET);
                 Objects.requireNonNull(block.getWorld()).playEffect(block.getBlock().getLocation(), Effect.VILLAGER_PLANT_GROW, 3);
             });
         } else {
-            config.blueTeamGoalBlocks.forEach(block -> {
+            data.blueTeamGoalBlocks.forEach(block -> {
                 Objects.requireNonNull(block.getWorld()).spawnEntity(block.getBlock().getLocation(), EntityType.FIREWORK_ROCKET);
                 Objects.requireNonNull(block.getWorld()).playEffect(block.getBlock().getLocation(), Effect.VILLAGER_PLANT_GROW, 3);
             });
 
         }
-    }
-
-    public void displayTeams(Player p) {
-        p.sendMessage(buildTeam());
     }
 
     public String buildTeam() {
@@ -479,8 +456,8 @@ public class Match {
         this.matchState = matchState;
     }
 
-    public MatchConfig getConfig() {
-        return config;
+    public MatchData getData() {
+        return data;
     }
 
     public void removeBall() {

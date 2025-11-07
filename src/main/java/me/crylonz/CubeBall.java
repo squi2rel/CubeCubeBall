@@ -1,7 +1,8 @@
 package me.crylonz;
 
+import com.github.squi2rel.cb.CCBCommand;
 import com.github.squi2rel.cb.I18n;
-import com.github.squi2rel.cb.MatchConfig;
+import com.github.squi2rel.cb.MatchData;
 import com.github.squi2rel.cb.menu.builder.MenuManager;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -17,26 +18,19 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.Vector;
 
-import java.io.File;
 import java.util.*;
 
 import static java.lang.Math.abs;
 import static me.crylonz.MatchState.*;
 
 public class CubeBall extends JavaPlugin {
-
-    public static File configFile;
-    public static HashMap<String, Ball> balls = new HashMap<>();
-
-    public static Match current;
-    public static HashMap<String, Match> matches = new HashMap<>();
-
     public static Plugin plugin;
-    public static int matchTimer = 0;
 
+    public static HashMap<String, Ball> balls = new HashMap<>();
+    public static HashMap<String, Match> matches = new HashMap<>();
+    public static HashMap<UUID, Long> cooldown = new HashMap<>();
 
-    public static HashMap<UUID, Long> cooldown;
-
+    public static int maxMatchPerPlayer;
 
     public static void generateBall(Material material, String id, Location location, Vector lastVelocity) {
 
@@ -72,10 +66,9 @@ public class CubeBall extends JavaPlugin {
     }
 
     public void onEnable() {
-        configFile = new File(getDataFolder(), "config.yml");
-        if (!configFile.exists()) {
-            saveDefaultConfig();
-        }
+        plugin = this;
+
+        saveDefaultConfig();
 
         String lang = getConfig().getString("language", "en");
         I18n.init(this, lang);
@@ -85,23 +78,18 @@ public class CubeBall extends JavaPlugin {
         ConfigurationSection section = getConfig().getConfigurationSection("matches");
         if (section == null) section = new MemoryConfiguration();
         for (String key : Objects.requireNonNull(section).getKeys(false)) {
-            matches.put(key, new Match(key, MatchConfig.from(section.getConfigurationSection(key))));
+            matches.put(key, new Match(key, MatchData.from(section.getConfigurationSection(key))));
         }
+
+        maxMatchPerPlayer = getConfig().getInt("maxMatchPerPlayer", 3);
 
         getServer().getPluginManager().registerEvents(new CubeBallListener(), this);
 
-        plugin = this;
-
         new Metrics(this, 17634);
-
-        cooldown = new HashMap<>();
 
         launchRepeatingTask();
 
-        Objects.requireNonNull(this.getCommand("ccb"), "Command ccb not found")
-                .setExecutor(new CBCommandExecutor());
-
-        Objects.requireNonNull(getCommand("ccb")).setTabCompleter(new CBTabCompletion());
+        Objects.requireNonNull(getCommand("ccb")).setExecutor(new CCBCommand());
     }
 
     public void onDisable() {
@@ -121,7 +109,7 @@ public class CubeBall extends JavaPlugin {
         ConfigurationSection section = new MemoryConfiguration();
         for (Map.Entry<String, Match> match : matches.entrySet()) {
             MemoryConfiguration m = new MemoryConfiguration();
-            match.getValue().getConfig().write(m);
+            match.getValue().getData().write(m);
             section.set(match.getKey(), m);
         }
         plugin.getConfig().set("matches", section);
@@ -147,31 +135,35 @@ public class CubeBall extends JavaPlugin {
                 return b;
             });
 
-            if (current != null && current.getMatchState().equals(IN_PROGRESS)) {
-                matchTimer--;
+            for (Match match : matches.values()) {
+                if (match.getMatchState().equals(IN_PROGRESS)) {
+                    int matchTimer = --match.matchTimer;
 
-                if (matchTimer % 60 == 0 && matchTimer > 0) {
-                    current.getAllPlayer(true).forEach(player -> {
-                        if (player != null) {
-                            player.sendMessage(I18n.format("match_time_left_min", "min", matchTimer / 60));
+                    if (matchTimer % 60 == 0 && matchTimer > 0) {
+                        match.getAllPlayer(true).forEach(player -> {
+                            if (player != null) {
+                                player.sendMessage(I18n.format("match_time_left_min", "min", matchTimer / 60));
+                            }
+                        });
+                    }
+                    if (matchTimer == 30 || matchTimer == 15 || matchTimer <= 10 && matchTimer > 0) {
+                        match.getAllPlayer(true).forEach(player -> {
+                            if (player != null) {
+                                player.sendMessage(I18n.format("match_time_left_sec", "sec", matchTimer));
+                            }
+                        });
+                    }
+                    if (matchTimer <= 0) {
+                        match.endMatch();
+                        if (match.getMatchState() != OVERTIME) {
+                            match.setMatchState(READY);
                         }
-                    });
-                }
-                if (matchTimer == 30 || matchTimer == 15 || matchTimer <= 10 && matchTimer > 0) {
-                    current.getAllPlayer(true).forEach(player -> {
-                        if (player != null) {
-                            player.sendMessage(I18n.format("match_time_left_sec", "sec", matchTimer));
-                        }
-                    });
-                }
-                if (matchTimer <= 0) {
-                    current.endMatch();
-                    if (current.getMatchState() != OVERTIME) {
-                        current.setMatchState(READY);
+                    }
+                } else {
+                    for (Player player : match.getAllPlayer(false)) {
+                        cooldown.remove(player.getUniqueId());
                     }
                 }
-            } else {
-                cooldown.clear();
             }
         }, 0, 20);
 

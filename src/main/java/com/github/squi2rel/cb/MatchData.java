@@ -7,8 +7,11 @@ import org.bukkit.configuration.ConfigurationSection;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 
-public class MatchConfig {
+public class MatchData {
+    public String creator;
+    public long creatorIdMost, creatorIdLeast;
 
     public Material cubeBallBlock = Material.NETHERITE_BLOCK;
     public int matchDuration = 300;
@@ -23,6 +26,10 @@ public class MatchConfig {
     public List<Location> redTeamSpawns = new ArrayList<>();
 
     public void write(ConfigurationSection config) {
+        config.set("creator", creator);
+        config.set("creatorIdMost", creatorIdMost);
+        config.set("creatorIdLeast", creatorIdLeast);
+
         config.set("cubeBallBlock", cubeBallBlock.name());
         config.set("matchDuration", matchDuration);
         config.set("maxGoal", maxGoal);
@@ -36,6 +43,10 @@ public class MatchConfig {
     }
 
     public void read(ConfigurationSection config) {
+        creator = config.getString("creator");
+        creatorIdMost = config.getLong("creatorIdMost");
+        creatorIdLeast = config.getLong("creatorIdLeast");
+
         cubeBallBlock = getMaterial(config.getString("cubeBallBlock"));
         matchDuration = config.getInt("matchDuration");
         maxGoal = config.getInt("maxGoal");
@@ -48,8 +59,16 @@ public class MatchConfig {
         redTeamSpawns = getLocations(config, "redTeamSpawns");
     }
 
-    public static MatchConfig from(ConfigurationSection config) {
-        MatchConfig instance = new MatchConfig();
+    public static MatchData create(String name, UUID uuid) {
+        MatchData instance = new MatchData();
+        instance.creator = name;
+        instance.creatorIdMost = uuid.getMostSignificantBits();
+        instance.creatorIdLeast = uuid.getLeastSignificantBits();
+        return instance;
+    }
+
+    public static MatchData from(ConfigurationSection config) {
+        MatchData instance = new MatchData();
         instance.read(config);
         return instance;
     }

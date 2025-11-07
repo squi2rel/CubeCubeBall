@@ -6,9 +6,13 @@ description: Play football in Minecraft
 api-version: 1.13
 commands:
   ccb:
+    permission: cubecubeball.manage
     description: Control command
     usage: /ccb
 permissions:
   cubecubeball.manage:
     description: Allows player to manage cubeball
+    default: op
+  cubecubeball.admin:
+    description: Manage all match
     default: op

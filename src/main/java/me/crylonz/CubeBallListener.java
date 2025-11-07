@@ -25,7 +25,7 @@ public class CubeBallListener implements Listener {
     @EventHandler
     public void blockChangeEvent(EntityChangeBlockEvent e) {
         for (Match match : matches.values()) {
-            Material block = match.getConfig().cubeBallBlock;
+            Material block = match.getData().cubeBallBlock;
             if (e.getTo().equals(block)) {
                 if (e.getEntityType() == EntityType.FALLING_BLOCK) {
                     e.setCancelled(true);
@@ -76,7 +76,7 @@ public class CubeBallListener implements Listener {
     public static void onSwapItem(PlayerSwapHandItemsEvent event) {
         for (Match match : matches.values()) {
             if (match.getMatchState() == MatchState.IN_PROGRESS && match.containsPlayer(event.getPlayer())) {
-                int cd = match.getConfig().dashCooldown;
+                int cd = match.getData().dashCooldown;
                 if (cd <= 0) break;
                 if (!cooldown.containsKey(event.getPlayer().getUniqueId())) {
                     cooldown.put(event.getPlayer().getUniqueId(), System.currentTimeMillis() + cd * 1000L);

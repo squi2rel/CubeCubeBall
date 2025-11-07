@@ -1,12 +1,11 @@
 package com.github.squi2rel.cb.menu;
 
 import com.github.squi2rel.cb.I18n;
-import com.github.squi2rel.cb.MatchConfig;
+import com.github.squi2rel.cb.MatchData;
 import com.github.squi2rel.cb.menu.builder.DynamicMenuBuilder;
 import com.github.squi2rel.cb.menu.builder.MenuBuilder;
 import com.github.squi2rel.cb.menu.builder.MenuContext;
 import com.github.squi2rel.cb.menu.builder.MenuManager;
-import com.github.squi2rel.cb.menu.builder.*;
 import com.github.squi2rel.cb.util.BlockScanUtil;
 import me.crylonz.CubeBall;
 import me.crylonz.Match;
@@ -16,19 +15,19 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 
 import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.bukkit.Material.*;
 
 public class SettingsMenu {
-
     public static DynamicMenuBuilder<Match> desc = new DynamicMenuBuilder<>(I18n.get("menu_desc_title"), 6, (builder, player, match) -> {
-        MatchConfig c = match.getConfig();
+        MatchData c = match.getData();
         builder.setLorePrefix(ChatColor.GRAY.toString());
         MatchState state = match.getMatchState();
         builder.setSlot(0, 5, getState(state), match.getName(), null);
         builder.setSlot(8, 5, BARRIER, I18n.get("menu_desc_delete"), null).setAction((p, v) -> {
             CubeBall.matches.remove(match.getName());
-            if (CubeBall.current == match) CubeBall.current = null;
             CubeBall.save();
             v.openParent(p);
             p.sendMessage(I18n.get("match_removed"));
@@ -156,10 +155,21 @@ public class SettingsMenu {
     public static DynamicMenuBuilder<Integer> list = new DynamicMenuBuilder<>(I18n.get("menu_list_title"), 6, (builder, player, page) -> {
         int col = 0, row = 0;
         int maxPerPage = 5 * 9;
-        ArrayList<Match> values = new ArrayList<>(CubeBall.matches.values());
+        List<Match> values;
+        if (player.hasPermission("cubecubeball.admin")) {
+            values = new ArrayList<>(CubeBall.matches.values());
+        } else {
+            long most = player.getUniqueId().getMostSignificantBits();
+            long least = player.getUniqueId().getLeastSignificantBits();
+            values = CubeBall.matches.values().stream().filter(m -> {
+                MatchData data = m.getData();
+                return data.creatorIdMost == most && data.creatorIdLeast == least;
+            }).collect(Collectors.toList());
+        }
+        builder.setLorePrefix(ChatColor.GRAY.toString());
         for (Match match : values.subList(page * maxPerPage, Math.min((page + 1) * maxPerPage, values.size()))) {
             MatchState state = match.getMatchState();
-            builder.setSlot(col, row, getState(state), match.getName(), null).setAction((p, v) -> {
+            builder.setSlot(col, row, getState(state), match.getName(), I18n.format("menu_list_creator", "n", match.getData().creator)).setAction((p, v) -> {
                 DynamicMenuBuilder.DynamicMenuContext<Match> menu = desc.build();
                 menu.setParent(v);
                 menu.sendTo(p, match);
@@ -175,10 +185,21 @@ public class SettingsMenu {
 
     public static MenuContext<Void> settings = new MenuBuilder<Void>(I18n.get("menu_title"), 6, builder -> {
         builder.setSlot(0, 0, GREEN_CONCRETE, I18n.get("menu_new"), null).setAction((p, v) -> {
+            if (!p.hasPermission("cubecubeball.admin")) {
+                long most = p.getUniqueId().getMostSignificantBits();
+                long least = p.getUniqueId().getLeastSignificantBits();
+                if (CubeBall.matches.values().stream().filter(m -> {
+                    MatchData data = m.getData();
+                    return data.creatorIdMost == most && data.creatorIdLeast == least;
+                }).count() >= CubeBall.maxMatchPerPlayer) {
+                    p.sendMessage(I18n.format("menu_new_limit", "n", CubeBall.maxMatchPerPlayer));
+                    return;
+                }
+            }
             p.sendMessage(I18n.get("menu_new_name"));
             p.closeInventory();
             MenuManager.registerChatHandler(p, s -> {
-                Match m = new Match(s);
+                Match m = new Match(s, p);
                 CubeBall.matches.put(s, m);
                 CubeBall.save();
                 p.sendMessage(I18n.get("menu_new_success"));
