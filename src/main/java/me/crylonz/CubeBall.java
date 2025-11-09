@@ -125,7 +125,7 @@ public class CubeBall extends JavaPlugin {
 
     private void launchRepeatingTask() {
 
-        getServer().getScheduler().scheduleSyncRepeatingTask(this, () -> {
+        getServer().getScheduler().runTaskTimer(this, () -> {
 
             cooldown.entrySet().removeIf(entry -> {
                 long targetTime = entry.getValue();
@@ -168,7 +168,7 @@ public class CubeBall extends JavaPlugin {
         }, 0, 20);
 
 
-        getServer().getScheduler().scheduleSyncRepeatingTask(this, () -> {
+        getServer().getScheduler().runTaskTimer(this, () -> {
 
             for (Map.Entry<String, Ball> entry : balls.entrySet()) {
                 Ball ballData = entry.getValue();

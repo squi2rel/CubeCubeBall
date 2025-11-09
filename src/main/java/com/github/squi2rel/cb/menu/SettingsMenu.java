@@ -127,8 +127,7 @@ public class SettingsMenu {
         });
         if (state == MatchState.IN_PROGRESS || state == MatchState.GOAL) {
             builder.setSlot(6, 2, RED_WOOL, I18n.get("menu_desc_stop"), null).setAction((p, v) -> {
-                match.removeBall();
-                match.reset();
+                match.cancel();
                 builder.refresh();
             }).setPrefix(ChatColor.RED.toString());
         } else {
@@ -217,7 +216,7 @@ public class SettingsMenu {
             menu.setParent(v);
             menu.sendTo(p, 0);
         });
-    }).build();
+    }).build(); // TODO pause & resume, personal ball, static or random spawn ...
 
     private static Material getState(MatchState state) {
         return state == MatchState.CREATED ? GRAY_CONCRETE : state == MatchState.READY ? YELLOW_CONCRETE : LIME_CONCRETE;

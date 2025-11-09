@@ -31,6 +31,7 @@ public class Match {
     private UUID lastTouchPlayer;
     private int blueScore = 0;
     private int redScore = 0;
+    private boolean canceled;
     private final MatchData data;
 
     public Match(String name, Player player) {
@@ -71,7 +72,8 @@ public class Match {
     }
 
     public void start(Player p) {
-        if (matchState.equals(READY)) {
+        if (matchState == READY) {
+            reset();
             if (!blueTeam.isEmpty() || !redTeam.isEmpty()) {
                 sortSpawns();
 
@@ -149,20 +151,28 @@ public class Match {
         teleportTeam(redTeam, data.redTeamSpawns);
 
         PotionEffect effect = new PotionEffect(PotionEffectType.SLOWNESS, 80, 255);
+        List<Location> allSpawns = getAllSpawns();
+        for (Location spawn : allSpawns) surroundWith(spawn, Material.BARRIER);
         getAllPlayer(false).forEach(player -> {
             player.setVelocity(new Vector(0, 0, 0));
             player.addPotionEffect(effect);
-            surroundWith(player, Material.BARRIER);
         });
-        BukkitScheduler scheduler = getServer().getScheduler();
-        scheduler.scheduleSyncDelayedTask(plugin, () -> sendMessageToAllPlayer("3", "", 1, Sound.BLOCK_NOTE_BLOCK_BELL, 1), 20);
-        scheduler.scheduleSyncDelayedTask(plugin, () -> sendMessageToAllPlayer("2", "", 1, Sound.BLOCK_NOTE_BLOCK_BELL, 1), 40);
-        scheduler.scheduleSyncDelayedTask(plugin, () -> sendMessageToAllPlayer("1", "", 1, Sound.BLOCK_NOTE_BLOCK_BELL, 1), 60);
-        scheduler.scheduleSyncDelayedTask(plugin, () -> {
-            sendMessageToAllPlayer("GO !", "", 1, Sound.BLOCK_NOTE_BLOCK_BELL, 2);
-            getAllPlayer(false).forEach(player -> surroundWith(player, Material.AIR));
+        Bukkit.getScheduler().runTaskLater(plugin, () -> sendMessageToAllPlayer(I18n.get("countdown_3"), "", 1, Sound.BLOCK_NOTE_BLOCK_BELL, 1), 20);
+        Bukkit.getScheduler().runTaskLater(plugin, () -> sendMessageToAllPlayer(I18n.get("countdown_2"), "", 1, Sound.BLOCK_NOTE_BLOCK_BELL, 1), 40);
+        Bukkit.getScheduler().runTaskLater(plugin, () -> sendMessageToAllPlayer(I18n.get("countdown_1"), "", 1, Sound.BLOCK_NOTE_BLOCK_BELL, 1), 60);
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            sendMessageToAllPlayer(I18n.get("go"), "", 1, Sound.BLOCK_NOTE_BLOCK_BELL, 2);
+            for (Location spawn : getAllSpawns()) surroundWith(spawn, Material.AIR);
+            if (canceled) return;
             startRound();
         }, 80);
+    }
+
+    private List<Location> getAllSpawns() {
+        ArrayList<Location> allSpawns = new ArrayList<>();
+        allSpawns.addAll(data.blueTeamSpawns);
+        allSpawns.addAll(data.redTeamSpawns);
+        return allSpawns;
     }
 
     private void startRound() {
@@ -171,8 +181,8 @@ public class Match {
         generateBall(data.cubeBallBlock, name, data.ballSpawn, null);
     }
 
-    private static void surroundWith(Player player, Material block) {
-        Block pos = player.getLocation().getBlock();
+    private static void surroundWith(Location base, Material block) {
+        Block pos = base.getBlock();
         int[][] offsets = {{1, 0}, {0, 1}, {-1, 0}, {0, -1}};
         for (int[] offset : offsets) {
             pos.getRelative(offset[0], 0, offset[1]).setType(block);
@@ -225,7 +235,7 @@ public class Match {
     }
 
     public void checkGoal(Location ballLocation) {
-        if (matchState.equals(IN_PROGRESS) || matchState.equals(OVERTIME)) {
+        if (matchState == IN_PROGRESS || matchState == OVERTIME) {
 
             int ballX = ballLocation.getBlockX();
             int ballZ = ballLocation.getBlockZ();
@@ -257,10 +267,10 @@ public class Match {
             triggerGoalAnimation(Team.RED);
         }
 
-        if (matchState.equals(IN_PROGRESS) && (data.maxGoal <= 0 || (blueScore != data.maxGoal && redScore != data.maxGoal))) {
+        if (matchState == IN_PROGRESS && (data.maxGoal <= 0 || (blueScore != data.maxGoal && redScore != data.maxGoal))) {
             sendScoreToPlayer();
             matchState = GOAL;
-            getServer().getScheduler().scheduleSyncDelayedTask(plugin, this::startDelayedRound, 20 * 3);
+            getServer().getScheduler().runTaskLater(plugin, this::startDelayedRound, 20 * 3);
         } else {
             matchState = GOAL;
             endMatch();
@@ -333,6 +343,14 @@ public class Match {
         blueScore = 0;
         redScore = 0;
         goals.clear();
+        canceled = false;
+    }
+
+    public void cancel() {
+        removeBall();
+        reset();
+        canceled = true;
+        for (Player p : getAllPlayer(true)) p.sendMessage(I18n.get("match_canceled"));
     }
 
     public void sendScoreToPlayer() {
@@ -465,7 +483,7 @@ public class Match {
     }
 
     public boolean pause() {
-        if (matchState.equals(IN_PROGRESS) || matchState.equals(OVERTIME)) {
+        if (matchState == IN_PROGRESS || matchState == OVERTIME) {
             matchState = PAUSED;
             removeBall();
             return true;
@@ -474,7 +492,7 @@ public class Match {
     }
 
     public boolean resume() {
-        if (matchState.equals(PAUSED)) {
+        if (matchState == PAUSED) {
             startDelayedRound();
             return true;
         }
